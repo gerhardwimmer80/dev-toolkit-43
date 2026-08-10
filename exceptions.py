@@ -1,28 +1,41 @@
-class CustomError(Exception):
-    """Custom exception class for specific errors."""
-    def __init__(self, message, errors=None):
-        super().__init__(message)
-        self.errors = errors
+class CustomException(Exception):
+    """Base class for custom exceptions."""
+    pass
 
-class ValidationError(CustomError):
+class ValidationError(CustomException):
     """Exception raised for validation errors."""
-    pass
+    def __init__(self, message, field=None):
+        self.message = message
+        self.field = field
+        super().__init__(self.message)
 
-class DataNotFoundError(CustomError):
-    """Exception raised when data is not found."""
-    pass
+    def __str__(self):
+        return f'ValidationError: {self.message} (Field: {self.field})'
 
-class OperationTimeoutError(CustomError):
-    """Exception raised for operations that exceed time limit."""
-    pass
+class DatabaseError(CustomException):
+    """Exception raised for database errors."""
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
 
-def handle_error(e):
-    """Error handling based on exception type."""
-    if isinstance(e, ValidationError):
-        return {'error': 'Validation failed', 'message': str(e)}
-    elif isinstance(e, DataNotFoundError):
-        return {'error': 'Data not found', 'message': str(e)}
-    elif isinstance(e, OperationTimeoutError):
-        return {'error': 'Operation timed out', 'message': str(e)}
-    else:
-        return {'error': 'An unexpected error occurred', 'message': str(e)}
+    def __str__(self):
+        return f'DatabaseError: {self.message}'
+
+class AuthenticationError(CustomException):
+    """Exception raised for authentication errors."""
+    def __init__(self, message='Authentication failed'): 
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self): 
+        return self.message
+
+class FileNotFoundError(CustomException):
+    """Exception raised when a file is not found."""
+    def __init__(self, filename):
+        self.filename = filename
+        self.message = f'File not found: {self.filename}'
+        super().__init__(self.message)
+
+    def __str__(self):
+        return self.message
