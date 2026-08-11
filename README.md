@@ -1,47 +1,44 @@
 # dev-toolkit-43
 
-dev-toolkit-43 is a comprehensive Python library designed to streamline common development tasks, enabling developers to improve their productivity and code quality. With tools for debugging, code formatting, and testing, this toolkit is perfect for teams looking to enhance their workflows.
+Dev Toolkit 43 is a comprehensive set of Python utilities designed to streamline development workflows, enhance code quality, and simplify common tasks. The toolkit provides developers with essential tools that promote efficiency and collaboration in various projects.
 
 ## Features
-- **Automated Code Formatting**: Easily format your Python code with a single command, ensuring consistency and adherence to PEP 8 standards.
-- **Integrated Debugging Tools**: Utilize a collection of debugging utilities that simplify error tracking and resolution, reducing development time.
-- **Unit Testing Automation**: Generate and run unit tests effortlessly, with automatic reporting to help maintain high code quality.
-- **Seamless CLI Integration**: Access all functionalities directly from the command line, allowing for rapid integration into your existing development processes.
+
+- **Automated Code Review**: Integrate with popular linting tools like flake8 and black to ensure code quality and adherence to style guidelines automatically.
+- **Version Control Helper**: Simplify Git operations with custom scripts that automate common tasks such as branching, merging, and commit messaging.
+- **Dependency Management**: Easily manage and update project dependencies using inbuilt tools that check for updates and provide installation commands.
+- **Custom Script Runner**: Execute custom Python scripts directly from the command line with simple configurations to streamline repetitive tasks.
 
 ## Installation
 
-To install dev-toolkit-43, clone the repository and install the required dependencies:
-
-```bash
-git clone https://github.com/yourusername/dev-toolkit-43.git
-cd dev-toolkit-43
-pip install -r requirements.txt
-```
-
-Alternatively, you can install it directly via pip:
+To install the Dev Toolkit 43, you will need Python 3.6 or higher. You can install the package directly using pip:
 
 ```bash
 pip install dev-toolkit-43
 ```
 
-## Basic Usage
-
-Once installed, you can use dev-toolkit-43 by running commands directly from the terminal. Here’s a quick example of how to format your Python files:
+Alternatively, you can clone the repository and install it manually:
 
 ```bash
-dev-toolkit format my_script.py
+git clone https://github.com/Developer/dev-toolkit-43.git
+cd dev-toolkit-43
+pip install .
 ```
 
-This command will automatically format the specified Python file according to PEP 8 standards, improving readability and maintainability. For debugging, simply invoke:
+## Basic Usage Example
+
+Once installed, you can start using the toolkit by running the following command to initiate the automated code review process on your project:
 
 ```bash
-dev-toolkit debug my_script.py
+python -m dev_toolkit.code_review
 ```
 
-This provides an interactive session that facilitates tracking down errors effectively.
+You can also utilize the version control helper to simplify your Git commands:
 
-## License
+```bash
+python -m dev_toolkit.git_helper commit -m "Your commit message here"
+```
 
-![MIT License](https://img.shields.io/badge/license-MIT-green)
+This toolkit is designed to adapt to your project needs, making it a versatile addition to any developer's toolbox.
 
-dev-toolkit-43 is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+![MIT License](https://img.shields.io/badge/license-MIT-green.svg)
