@@ -1,43 +1,34 @@
-def safe_divide(numerator, denominator):
-    """Safely divide two numbers, avoiding zero division errors."""
+import json
+from typing import Any, Dict, List, Union
+
+def read_json(file_path: str) -> Union[Dict[str, Any], None]:
     try:
-        result = numerator / denominator
-    except ZeroDivisionError:
-        return float('inf')  # Return infinity if division by zero
-    return result
+        with open(file_path, 'r') as file:
+            return json.load(file)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f'Error reading {file_path}: {str(e)}')
+        return None
 
-
-def factorial(n):
-    """Return the factorial of a number using recursion."""
-    if n < 0:
-        raise ValueError('Negative values not allowed.')
-    return 1 if n == 0 else n * factorial(n - 1)
-
-
-def flatten_list(nested_list):
-    """Flatten a nested list into a single list."""
-    flat_list = []
-    for elem in nested_list:
-        if isinstance(elem, list):
-            flat_list.extend(flatten_list(elem))  # Recursion for nested lists
-        else:
-            flat_list.append(elem)
-    return flat_list
-
-
-def is_prime(num):
-    """Check if a number is prime."""
-    if num <= 1:
+def write_json(file_path: str, data: Dict[str, Any]) -> bool:
+    try:
+        with open(file_path, 'w') as file:
+            json.dump(data, file, indent=4)
+        return True
+    except IOError as e:
+        print(f'Error writing to {file_path}: {str(e)}')
         return False
-    for i in range(2, int(num**0.5) + 1):
-        if num % i == 0:
-            return False
-    return True
 
+def flatten_list(nested_list: List[Union[int, List]]) -> List[int]:
+    if not isinstance(nested_list, list):
+        return [nested_list]  # base case
+    flattened = []
+    for item in nested_list:
+        flattened.extend(flatten_list(item))
+    return flattened
 
-def generate_fibonacci(n):
-    """Generate Fibonacci series up to the nth term."""
-    fib_series = [0, 1]
-    while len(fib_series) < n:
-        fib_series.append(fib_series[-1] + fib_series[-2])
-    return fib_series[:n]
+def chunk_list(data: List[Any], chunk_size: int) -> List[List[Any]]:
+    return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+
+# Example usage
+if __name__ == '__main__':
+    print(read_json('data.json'))  # Implementing example usage
