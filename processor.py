@@ -1,35 +1,35 @@
 import json
-from typing import Any, Dict, List, Tuple
+import pandas as pd
 
+class DataProcessor:
+    def __init__(self, data):
+        self.data = data
 
-def process_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    processed = []
-    for entry in data:
-        new_entry = {"id": entry.get('id'), "value": entry.get('value', 0) * 2}
-        processed.append(new_entry)
-    return processed
+    def filter_columns(self, **kwargs):
+        filtered = self.data
+        for key, value in kwargs.items():
+            if key in filtered.columns:
+                filtered = filtered[filtered[key] == value]
+        return filtered
 
+    def to_json(self):
+        return self.data.to_json(orient='records')
 
-def save_to_file(filename: str, data: List[Dict[str, Any]]) -> None:
-    with open(filename, 'w') as file:
-        json.dump(data, file, indent=4)
+    def from_json(self, json_str):
+        self.data = pd.read_json(json_str)
 
+    def get_summary_statistics(self):
+        return self.data.describe(include='all')
 
-def load_from_file(filename: str) -> List[Dict[str, Any]]:
-    with open(filename, 'r') as file:
-        return json.load(file)
-
-
-def validate_data(data: List[Dict[str, Any]]) -> bool:
-    if not data:
-        return False
-    for entry in data:
-        if not isinstance(entry, dict) or 'id' not in entry:
-            return False
-    return True
-
-
-def summarize_data(data: List[Dict[str, Any]]) -> Dict[str, Any]:
-    total_value = sum(entry.get('value', 0) for entry in data)
-    count = len(data)
-    return {"total": total_value, "count": count}
+if __name__ == '__main__':
+    sample_data = pd.DataFrame({
+        'name': ['Alice', 'Bob', 'Charlie', 'David'],
+        'age': [25, 30, 35, 40],
+        'city': ['New York', 'Los Angeles', 'New York', 'Chicago']
+    })
+    processor = DataProcessor(sample_data)
+    filtered_data = processor.filter_columns(city='New York')
+    print(filtered_data)
+    print(processor.to_json())
+    stats = processor.get_summary_statistics()
+    print(stats)
