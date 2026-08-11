@@ -1,25 +1,29 @@
 import json
-import os
+from typing import Any, Dict, Optional
 
 class ConfigLoader:
-    def __init__(self, default_config_path: str):
-        self.default_config_path = default_config_path
-        self.config = self.load_defaults()
+    def __init__(self, default_config: Dict[str, Any] = None):
+        self.default_config = default_config or {}
+        self.user_config = {}
 
-    def load_defaults(self):
-        with open(self.default_config_path, 'r') as file:
-            return json.load(file)
+    def load(self, filepath: str) -> Dict[str, Any]:
+        try:
+            with open(filepath, 'r') as file:
+                self.user_config = json.load(file)
+        except FileNotFoundError:
+            self.user_config = {}
+            print(f"Warning: {filepath} not found. Using default configurations.")
+        return self.merge_configs()
 
-    def update_config(self, custom_config_path: str):
-        if os.path.exists(custom_config_path):
-            with open(custom_config_path, 'r') as file:
-                custom_config = json.load(file)
-                self.config.update(custom_config)
+    def merge_configs(self) -> Dict[str, Any]:
+        return {**self.default_config, **self.user_config}
 
-    def get(self, key, fallback=None):
-        return self.config.get(key, fallback)
-
-# Example usage:
-# loader = ConfigLoader('default_config.json')
-# loader.update_config('custom_config.json')
-# print(loader.get('some_key', 'default_value'))
+if __name__ == '__main__':
+    default_settings = {
+        'host': 'localhost',
+        'port': 8080,
+        'debug': False
+    }
+    config_loader = ConfigLoader(default_settings)
+    config = config_loader.load('config.json')
+    print(config)
