@@ -1,19 +1,26 @@
-import re
+import time
+import requests
 
-def validate_input(data):
-    if not isinstance(data, str):
-        raise ValueError("Input must be a string")
-    if len(data) < 5:
-        raise ValueError("Input must be at least 5 characters long")
-    if not re.match("^[a-zA-Z0-9]*$", data):
-        raise ValueError("Input must only contain alphanumeric characters")
-    return True
+class NetworkError(Exception):
+    pass
 
+def retry_request(url, max_retries=3, backoff_factor=1):
+    retries = 0
+    while retries < max_retries:
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            retries += 1
+            if retries == max_retries:
+                raise NetworkError(f"Failed to fetch data from {url}: {e}")
+            time.sleep(backoff_factor * (2 ** (retries - 1)))
 
-def main_processing_loop(data):
+if __name__ == '__main__':
+    url = 'https://api.example.com/data'
     try:
-        validate_input(data)
-        # Process the valid input
-        print(f"Processing: {data}")
-    except ValueError as e:
-        print(f"Validation failed: {e}")
+        data = retry_request(url)
+        print(data)
+    except NetworkError as ne:
+        print(ne)
