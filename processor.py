@@ -1,35 +1,29 @@
-import json
-import pandas as pd
+import time
+import requests
 
-class DataProcessor:
-    def __init__(self, data):
-        self.data = data
+class NetworkError(Exception):
+    pass
 
-    def filter_columns(self, **kwargs):
-        filtered = self.data
-        for key, value in kwargs.items():
-            if key in filtered.columns:
-                filtered = filtered[filtered[key] == value]
-        return filtered
+def retry_operation(func, max_retries=3, delay=2, *args, **kwargs):
+    retries = 0
+    while retries < max_retries:
+        try:
+            return func(*args, **kwargs)
+        except requests.RequestException as e:
+            retries += 1
+            if retries == max_retries:
+                raise NetworkError(f'Request failed after {max_retries} attempts') from e
+            time.sleep(delay)
 
-    def to_json(self):
-        return self.data.to_json(orient='records')
-
-    def from_json(self, json_str):
-        self.data = pd.read_json(json_str)
-
-    def get_summary_statistics(self):
-        return self.data.describe(include='all')
+def fetch_data(url):
+    response = retry_operation(requests.get, url=url)
+    response.raise_for_status()
+    return response.json()
 
 if __name__ == '__main__':
-    sample_data = pd.DataFrame({
-        'name': ['Alice', 'Bob', 'Charlie', 'David'],
-        'age': [25, 30, 35, 40],
-        'city': ['New York', 'Los Angeles', 'New York', 'Chicago']
-    })
-    processor = DataProcessor(sample_data)
-    filtered_data = processor.filter_columns(city='New York')
-    print(filtered_data)
-    print(processor.to_json())
-    stats = processor.get_summary_statistics()
-    print(stats)
+    url = 'https://api.example.com/data'
+    try:
+        data = fetch_data(url)
+        print(data)
+    except NetworkError as e:
+        print(f'Error fetching data: {e}')
