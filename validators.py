@@ -1,26 +1,19 @@
-import time
-import requests
+def is_valid_input(user_input):
+    if not isinstance(user_input, str):
+        raise ValueError('Input must be a string')
+    if len(user_input) == 0:
+        raise ValueError('Input cannot be empty')
+    return True
 
-class NetworkError(Exception):
-    pass
-
-def retry_request(url, max_retries=3, backoff_factor=1):
-    retries = 0
-    while retries < max_retries:
+def main_processing_loop():
+    while True:
+        user_input = input('Enter some data: ')
         try:
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            retries += 1
-            if retries == max_retries:
-                raise NetworkError(f"Failed to fetch data from {url}: {e}")
-            time.sleep(backoff_factor * (2 ** (retries - 1)))
+            is_valid_input(user_input)
+            print(f'Processing input: {user_input}')
+            # Additional processing logic can follow here
+        except ValueError as e:
+            print(f'Error: {e}')
 
 if __name__ == '__main__':
-    url = 'https://api.example.com/data'
-    try:
-        data = retry_request(url)
-        print(data)
-    except NetworkError as ne:
-        print(ne)
+    main_processing_loop()
