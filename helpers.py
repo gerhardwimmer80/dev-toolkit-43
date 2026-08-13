@@ -1,28 +1,36 @@
-import time
+import json
+import os
 
-class PerformanceTracker:
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
+class ConfigLoader:
+    def __init__(self, default_config):
+        self.default_config = default_config
+        self.config = self.load_config()
 
-    def start(self):
-        self.start_time = time.perf_counter()
+    def load_config(self):
+        config_path = os.getenv('CONFIG_PATH', 'config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                user_config = json.load(f)
+            return self.merge_configs(self.default_config, user_config)
+        return self.default_config
 
-    def stop(self):
-        self.end_time = time.perf_counter()
+    def merge_configs(self, default, user):
+        merged = default.copy()
+        merged.update(user)
+        return merged
 
-    def get_duration(self):
-        if self.start_time is None or self.end_time is None:
-            raise ValueError('Timer has not been started and stopped properly')
-        return self.end_time - self.start_time
+    def get(self, key):
+        return self.config.get(key)
 
+# Example usage:
+def main():
+    default_settings = {
+        'host': 'localhost',
+        'port': 8080,
+        'debug': False
+    }
+    config_loader = ConfigLoader(default_settings)
+    print(config_loader.get('host'))
 
-def optimized_function(data):
-    tracker = PerformanceTracker()
-    tracker.start()
-
-    result = [x * 2 for x in data if x > 0]  # Efficient list comprehension
-
-    tracker.stop()
-    print(f'Performance duration: {tracker.get_duration()} seconds')
-    return result
+if __name__ == '__main__':
+    main()
