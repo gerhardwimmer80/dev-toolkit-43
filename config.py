@@ -1,29 +1,42 @@
+import os
 import json
-from typing import Any, Dict, Optional
 
-class ConfigLoader:
-    def __init__(self, default_config: Dict[str, Any] = None):
-        self.default_config = default_config or {}
-        self.user_config = {}
+class ConfigError(Exception):
+    pass
 
-    def load(self, filepath: str) -> Dict[str, Any]:
+class Config:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.config_data = self.load_config()
+
+    def load_config(self):
+        if not os.path.exists(self.filepath):
+            raise ConfigError(f'Config file not found: {self.filepath}')
         try:
-            with open(filepath, 'r') as file:
-                self.user_config = json.load(file)
-        except FileNotFoundError:
-            self.user_config = {}
-            print(f"Warning: {filepath} not found. Using default configurations.")
-        return self.merge_configs()
+            with open(self.filepath, 'r') as file:
+                config = json.load(file)
+                if not isinstance(config, dict):
+                    raise ConfigError('Config file must contain a dictionary')
+                return config
+        except json.JSONDecodeError as e:
+            raise ConfigError(f'Error decoding JSON: {str(e)}')
+        except Exception as e:
+            raise ConfigError(f'Unexpected error: {str(e)}')
 
-    def merge_configs(self) -> Dict[str, Any]:
-        return {**self.default_config, **self.user_config}
+    def get(self, key, default=None):
+        if key not in self.config_data:
+            if default is None:
+                raise ConfigError(f'Key {key} not found in config')
+            return default
+        return self.config_data[key]
 
-if __name__ == '__main__':
-    default_settings = {
-        'host': 'localhost',
-        'port': 8080,
-        'debug': False
-    }
-    config_loader = ConfigLoader(default_settings)
-    config = config_loader.load('config.json')
-    print(config)
+    def set(self, key, value):
+        self.config_data[key] = value
+        self.save_config()
+
+    def save_config(self):
+        try:
+            with open(self.filepath, 'w') as file:
+                json.dump(self.config_data, file, indent=4)
+        except Exception as e:
+            raise ConfigError(f'Error saving config: {str(e)}')
