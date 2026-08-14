@@ -1,30 +1,25 @@
-import time
-import random
-import requests
+import numpy as np
 
-class NetworkError(Exception):
-    pass
+def process_data(data):
+    array_data = np.array(data)
+    mean = np.mean(array_data)
+    std_dev = np.std(array_data)
+    processed = (array_data - mean) / std_dev
+    return processed
 
-def retry_request(url, max_retries=5, backoff_factor=1):
-    retries = 0
-    while retries < max_retries:
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json()
-        except (requests.RequestException, ValueError) as e:
-            retries += 1
-            if retries == max_retries:
-                raise NetworkError(f'Failed to fetch data from {url} after {retries} attempts')
-            wait_time = backoff_factor * (2 ** (retries - 1)) + random.uniform(0, 1)
-            time.sleep(wait_time)
-            print(f'Retry {retries}/{max_retries} for {url} after {wait_time:.2f} seconds')
-    raise NetworkError('Max retries exceeded')
 
-# Example Usage
-if __name__ == '__main__':
-    try:
-        data = retry_request('https://api.example.com/data')
-        print(data)
-    except NetworkError as e:
-        print(e)
+def optimize_and_process(data, threshold):
+    if len(data) > threshold:
+        processed = process_data(data)
+        return processed[processed > 0]
+    return np.array([])
+
+
+def main():
+    data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    threshold = 5
+    optimized_data = optimize_and_process(data, threshold)
+    print(optimized_data)
+
+if __name__ == "__main__":
+    main()
