@@ -2,37 +2,33 @@ import json
 import os
 
 class ConfigLoader:
-    def __init__(self, default_config_path='default_config.json'):
-        self.default_config_path = default_config_path
-        self.user_config_path = 'user_config.json'
-        self.config = self.load_config()
+    def __init__(self, default_settings=None, env_file='.env'):
+        self.default_settings = default_settings or {}
+        self.env_file = env_file
+        self.loaded_settings = {}
+        self.load_env_variables()
 
-    def load_config(self):
-        config_data = self.load_default_config()
-        user_data = self.load_user_config()
-        return {**config_data, **user_data}
-
-    def load_default_config(self):
-        if os.path.exists(self.default_config_path):
-            with open(self.default_config_path, 'r') as file:
-                return json.load(file)
-        return {}
-
-    def load_user_config(self):
-        if os.path.exists(self.user_config_path):
-            with open(self.user_config_path, 'r') as file:
-                return json.load(file)
-        return {}
+    def load_env_variables(self):
+        if os.path.exists(self.env_file):
+            with open(self.env_file) as f:
+                for line in f.readlines():
+                    key, value = line.strip().split('=', 1)
+                    self.loaded_settings[key] = value
 
     def get(self, key, default=None):
-        return self.config.get(key, default)
+        return self.loaded_settings.get(key, self.default_settings.get(key, default))
 
-    def set(self, key, value):
-        self.config[key] = value
-        with open(self.user_config_path, 'w') as file:
-            json.dump(self.config, file, indent=4)
+    def load_json_config(self, json_file):
+        if os.path.exists(json_file):
+            with open(json_file, 'r') as f:
+                json_config = json.load(f)
+                self.loaded_settings.update(json_config)
 
-# Example Usage:
-# config_loader = ConfigLoader()
-# print(config_loader.get('setting_key', 'default_value'))
-# config_loader.set('new_setting', 'new_value')
+    def get_all_settings(self):
+        return {**self.default_settings, **self.loaded_settings}
+
+# Example usage:
+# default_config = {'APP_MODE': 'development', 'DEBUG': True}
+# config_loader = ConfigLoader(default_settings=default_config)
+# config_loader.load_json_config('config.json')
+# app_mode = config_loader.get('APP_MODE')
