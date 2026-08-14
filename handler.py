@@ -1,23 +1,26 @@
-import json
-from datetime import datetime
+import time
+import requests
 
-class RequestHandler:
-    def __init__(self, request):
-        self.request = request
-        self.response = {}
+class NetworkOperationError(Exception):
+    pass
 
-    def process(self):
-        self.log_request()
-        self.validate_request()
-        self.create_response()
-        return self.response
+def perform_network_operation(url, retries=3, delay=1):
+    for attempt in range(retries):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except (requests.exceptions.RequestException, ValueError) as e:
+            if attempt < retries - 1:
+                time.sleep(delay)
+                delay *= 2  # Exponential backoff
+            else:
+                raise NetworkOperationError(f'Failed after {retries} attempts: {e}')  
 
-    def log_request(self):
-        print(f"[{datetime.now()}] Incoming request: {json.dumps(self.request)}")
-
-    def validate_request(self):
-        if 'data' not in self.request:
-            raise ValueError('Invalid request: Missing data')
-
-    def create_response(self):
-        self.response = {'status': 'success', 'data': self.request['data']}
+if __name__ == '__main__':
+    url = 'https://api.example.com/data'
+    try:
+        result = perform_network_operation(url)
+        print(result)
+    except NetworkOperationError as e:
+        print(e)
