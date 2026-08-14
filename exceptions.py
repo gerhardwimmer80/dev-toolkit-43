@@ -1,41 +1,33 @@
 class CustomError(Exception):
-    """Base class for other exceptions."""
-    pass
-
-class DataNotFoundError(CustomError):
-    """Exception raised when data is not found."""
-    def __init__(self, message="Requested data not found"):  
-        self.message = message
-        super().__init__(self.message)
-
-class InvalidInputError(CustomError):
-    """Exception raised for invalid inputs."""
-    def __init__(self, input_value, message="Invalid input provided"):  
-        self.input_value = input_value
-        self.message = f'{message}: {input_value}'
-        super().__init__(self.message)
-
-class ProcessingError(CustomError):
-    """Exception raised during processing errors."""
-    def __init__(self, message="Error occurred while processing"):  
+    """Base class for all custom exceptions"""
+    def __init__(self, message):
         self.message = message
         super().__init__(self.message)
 
 class ValidationError(CustomError):
-    """Exception raised for validation errors."""
-    def __init__(self, message="Validation failed"):  
-        self.message = message
+    """Raised when a validation check fails"""
+    def __init__(self, field, message):
+        self.field = field
+        self.message = f'Validation error on {field}: {message}'
         super().__init__(self.message)
 
-# Example usage of custom exceptions:
+class NotFoundError(CustomError):
+    """Raised when a requested resource is not found"""
+    def __init__(self, resource_id):
+        self.resource_id = resource_id
+        self.message = f'Resource with ID {resource_id} not found'
+        super().__init__(self.message)
 
-def find_data(data_dict, key):
-    if key not in data_dict:
-        raise DataNotFoundError(f'Key: {key}')
-    return data_dict[key]
+class PermissionError(CustomError):
+    """Raised when access is denied"""
+    def __init__(self, resource):
+        self.resource = resource
+        self.message = f'Access denied to resource: {resource}'
+        super().__init__(self.message)
 
-
-def validate_number(num):
-    if not isinstance(num, (int, float)):
-        raise InvalidInputError(num)
-    return True
+class ConfigurationError(CustomError):
+    """Raised when there is a configuration issue"""
+    def __init__(self, config_key):
+        self.config_key = config_key
+        self.message = f'Configuration error with key: {config_key}'
+        super().__init__(self.message)
