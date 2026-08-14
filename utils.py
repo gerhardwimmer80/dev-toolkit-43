@@ -1,44 +1,45 @@
-def optimized_compute(data):
-    from itertools import accumulate
-    
-    # Using accumulate to improve performance over manual loops
-    return list(accumulate(data))
+def safe_divide(numerator, denominator):
+    try:
+        result = numerator / denominator
+    except ZeroDivisionError:
+        return 'Error: Division by zero is not allowed.'
+    except TypeError:
+        return 'Error: Inputs must be numbers.'
+    else:
+        return result
 
 
-def filter_even_numbers(nums):
-    return (num for num in nums if num % 2 == 0)
+def read_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            return file.read()
+    except FileNotFoundError:
+        return 'Error: File not found.'
+    except IOError:
+        return 'Error: An I/O error occurred.'
 
 
-def remove_duplicates(seq):
-    seen = set()
-    return [x for x in seq if not (x in seen or seen.add(x))]  
+def parse_json(json_string):
+    import json
+    try:
+        return json.loads(json_string)
+    except json.JSONDecodeError:
+        return 'Error: Invalid JSON format.'
+    except TypeError:
+        return 'Error: Input must be a string.'
 
 
-def batch_process(data, batch_size=10):
-    for i in range(0, len(data), batch_size):
-        yield data[i:i + batch_size]
+def truncate_string(data, max_length):
+    if not isinstance(data, str):
+        return 'Error: Input must be a string.'
+    return data if len(data) <= max_length else data[:max_length] + '...'
 
 
-def merge_sorted_lists(list1, list2):
-    merged = []
-    i, j = 0, 0
-    while i < len(list1) and j < len(list2):
-        if list1[i] < list2[j]:
-            merged.append(list1[i])
-            i += 1
-        else:
-            merged.append(list2[j])
-            j += 1
-    merged.extend(list1[i:])
-    merged.extend(list2[j:])
-    return merged
+def main():
+    print(safe_divide(10, 0))  # Division by zero
+    print(read_file('non_existent_file.txt'))  # File not found
+    print(parse_json('{invalid_json'))  # Invalid JSON
+    print(truncate_string('This is a long string that needs shortening.', 20))  # Truncation
 
-
-def calculate_mean(numbers):
-    return sum(numbers) / len(numbers) if numbers else 0.0
-
-
-def compute_statistics(data):
-    mean_val = calculate_mean(data)
-    filtered_data = list(filter_even_numbers(data))
-    return mean_val, filtered_data
+if __name__ == '__main__':
+    main()
