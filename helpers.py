@@ -1,36 +1,39 @@
-import json
-import os
+def add_numbers(a, b):
+    return a + b
 
-class ConfigLoader:
-    def __init__(self, default_config):
-        self.default_config = default_config
-        self.config = self.load_config()
+def subtract_numbers(a, b):
+    return a - b
 
-    def load_config(self):
-        config_path = os.getenv('CONFIG_PATH', 'config.json')
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                user_config = json.load(f)
-            return self.merge_configs(self.default_config, user_config)
-        return self.default_config
+def multiply_numbers(a, b):
+    return a * b
 
-    def merge_configs(self, default, user):
-        merged = default.copy()
-        merged.update(user)
-        return merged
+def divide_numbers(a, b):
+    if b == 0:
+        raise ValueError('Cannot divide by zero')
+    return a / b
 
-    def get(self, key):
-        return self.config.get(key)
+def is_even(n):
+    return n % 2 == 0
 
-# Example usage:
-def main():
-    default_settings = {
-        'host': 'localhost',
-        'port': 8080,
-        'debug': False
-    }
-    config_loader = ConfigLoader(default_settings)
-    print(config_loader.get('host'))
+def find_max(numbers):
+    if not numbers:
+        raise ValueError('The list is empty')
+    max_value = numbers[0]
+    for number in numbers:
+        if number > max_value:
+            max_value = number
+    return max_value
 
-if __name__ == '__main__':
-    main()
+def find_min(numbers):
+    if not numbers:
+        raise ValueError('The list is empty')
+    min_value = numbers[0]
+    for number in numbers:
+        if number < min_value:
+            min_value = number
+    return min_value
+
+def average(numbers):
+    if not numbers:
+        raise ValueError('The list is empty')
+    return sum(numbers) / len(numbers)
