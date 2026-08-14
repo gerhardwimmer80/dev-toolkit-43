@@ -1,42 +1,36 @@
 import json
-from typing import Any, Dict, Union
+import logging
 
 class ProcessingError(Exception):
     pass
 
 class DataProcessor:
-    def __init__(self, data: Union[str, Dict[str, Any]]) -> None:
-        self.data = self.load_data(data)
+    def __init__(self, data):
+        self.data = data
 
-    def load_data(self, data: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
-        if isinstance(data, str):
-            try:
-                return json.loads(data)
-            except json.JSONDecodeError as e:
-                raise ProcessingError(f"Invalid JSON string: {e}")
-        elif isinstance(data, dict):
-            return data
-        else:
-            raise ProcessingError("Data must be a JSON string or a dictionary.")
-
-    def process(self) -> Dict[str, Any]:
+    def process_data(self):
         try:
-            self._validate_data(self.data)
-            return self._transform_data(self.data)
+            if not isinstance(self.data, list):
+                raise ProcessingError('Data must be a list.')
+            if len(self.data) == 0:
+                raise ProcessingError('Data list cannot be empty.')
+            processed = [self.process_item(item) for item in self.data]
+            return processed
         except ProcessingError as e:
-            return {"error": str(e)}
+            logging.error(f'Error in processing data: {e}')
+            return None
+        except Exception as e:
+            logging.critical(f'Unexpected error: {e}')
+            return None
 
-    def _validate_data(self, data: Dict[str, Any]) -> None:
-        if not isinstance(data, dict):
-            raise ProcessingError("Data is not a dictionary.")
-        if 'required_key' not in data:
-            raise ProcessingError("Missing required key in data.")
-
-    def _transform_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        # Transformation logic
-        return {"transformed_key": data['required_key'] * 2}
+    def process_item(self, item):
+        if not isinstance(item, dict):
+            raise ProcessingError(f'Item must be a dictionary, got {type(item).__name__}.')
+        # Simulate some processing
+        return {k: v for k, v in item.items() if v is not None}
 
 if __name__ == '__main__':
-    processor = DataProcessor({'required_key': 5})
-    result = processor.process()
-    print(result)  
+    data = [{'key1': 'value1', 'key2': None}, {'key1': 'value2'}]
+    processor = DataProcessor(data)
+    result = processor.process_data()
+    print(json.dumps(result, indent=2))
