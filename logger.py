@@ -1,28 +1,32 @@
 import logging
-import time
-from functools import wraps
 
-def retry(max_attempts=3, delay=1):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            attempts = 0
-            while attempts < max_attempts:
-                try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    attempts += 1
-                    logging.warning(f'Attempt {attempts}: {e}')
-                    if attempts == max_attempts:
-                        logging.error('Max attempts reached. Raising exception.')
-                        raise
-                    time.sleep(delay)
-        return wrapper
-    return decorator
+class CustomLogger:
+    def __init__(self, name="AppLogger", level=logging.INFO):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(level)
+        ch = logging.StreamHandler()
+        ch.setLevel(level)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
 
-# Example network operation with retry logic
-@retry(max_attempts=5, delay=2)
-def fetch_data(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json() 
+    def info(self, message):
+        self.logger.info(message)
+
+    def debug(self, message):
+        self.logger.debug(message)
+
+    def warning(self, message):
+        self.logger.warning(message)
+
+    def error(self, message):
+        self.logger.error(message)
+
+    def critical(self, message):
+        self.logger.critical(message)
+
+# Example usage:
+if __name__ == '__main__':
+    logger = CustomLogger()
+    logger.info('This is an info message')
+    logger.error('This is an error message')
