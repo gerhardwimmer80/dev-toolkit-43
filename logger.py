@@ -1,32 +1,40 @@
 import logging
 
-class CustomLogger:
-    def __init__(self, name="AppLogger", level=logging.INFO):
+class Logger:
+    def __init__(self, name: str):
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(level)
-        ch = logging.StreamHandler()
-        ch.setLevel(level)
+        handler = logging.StreamHandler()
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
 
-    def info(self, message):
-        self.logger.info(message)
-
-    def debug(self, message):
+    def debug(self, message: str):
         self.logger.debug(message)
 
-    def warning(self, message):
+    def info(self, message: str):
+        self.logger.info(message)
+
+    def warning(self, message: str):
         self.logger.warning(message)
 
-    def error(self, message):
+    def error(self, message: str):
         self.logger.error(message)
 
-    def critical(self, message):
+    def critical(self, message: str):
         self.logger.critical(message)
 
-# Example usage:
-if __name__ == '__main__':
-    logger = CustomLogger()
-    logger.info('This is an info message')
-    logger.error('This is an error message')
+# Create a default logger instance for usage
+default_logger = Logger('default_logger')
+def log_message(message: str, level: str = 'info'):
+    level = level.lower()
+    if level == 'debug':
+        default_logger.debug(message)
+    elif level == 'warning':
+        default_logger.warning(message)
+    elif level == 'error':
+        default_logger.error(message)
+    elif level == 'critical':
+        default_logger.critical(message)
+    else:
+        default_logger.info(message)
