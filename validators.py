@@ -1,30 +1,25 @@
 import re
 
-
-def is_valid_email(email: str) -> bool:
-    email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
-    return bool(re.match(email_regex, email))
-
-
-def is_positive_integer(value: int) -> bool:
-    return isinstance(value, int) and value > 0
+def is_email_valid(email: str) -> bool:
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
 
 
-def is_valid_url(url: str) -> bool:
-    url_regex = r'^(http|https)://[^\s/$.?#].[^\s]*$'
-    return bool(re.match(url_regex, url))
+def is_password_strong(password: str) -> bool:
+    min_length = 8
+    has_digit = re.search(r'\d', password)
+    has_special = re.search(r'[!@#$%^&*(),.?":{}|<>]', password)
+    return len(password) >= min_length and has_digit and has_special
 
 
-def is_non_empty_string(s: str) -> bool:
-    return isinstance(s, str) and bool(s.strip())
+def is_username_valid(username: str) -> bool:
+    pattern = r'^[a-zA-Z0-9._-]{3,20}$'
+    return re.match(pattern, username) is not None
 
 
-def are_valid_coordinates(latitude: float, longitude: float) -> bool:
-    return -90 <= latitude <= 90 and -180 <= longitude <= 180
-
-
-def is_valid_credit_card(card_number: str) -> bool:
-    card_regex = r'^(4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|6(?:011|5[0-9]{2})[0-9]{12}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|7[0-9]{15})$'
-    return bool(re.match(card_regex, card_number))
-
-
+def validate_user_data(email: str, password: str, username: str) -> dict:
+    return {
+        'email_valid': is_email_valid(email),
+        'password_strong': is_password_strong(password),
+        'username_valid': is_username_valid(username)
+    }
