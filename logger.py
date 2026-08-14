@@ -1,17 +1,28 @@
 import logging
-from logging.handlers import RotatingFileHandler
+import time
+from functools import wraps
 
-def setup_logger(name, log_file, level=logging.INFO):
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    handler = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=2)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    if not logger.hasHandlers():
-        logger.addHandler(handler)
-    return logger
+def retry(max_attempts=3, delay=1):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempts = 0
+            while attempts < max_attempts:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    attempts += 1
+                    logging.warning(f'Attempt {attempts}: {e}')
+                    if attempts == max_attempts:
+                        logging.error('Max attempts reached. Raising exception.')
+                        raise
+                    time.sleep(delay)
+        return wrapper
+    return decorator
 
-# Example usage
-if __name__ == '__main__':
-    my_logger = setup_logger('my_logger', 'app.log')
-    my_logger.info('Logger is set up and running.')
+# Example network operation with retry logic
+@retry(max_attempts=5, delay=2)
+def fetch_data(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json() 
