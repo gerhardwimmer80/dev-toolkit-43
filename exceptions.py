@@ -1,41 +1,41 @@
-class CustomException(Exception):
-    """Base class for custom exceptions."""
+class CustomError(Exception):
+    """Base class for other exceptions."""
     pass
 
-class ValidationError(CustomException):
+class DataNotFoundError(CustomError):
+    """Exception raised when data is not found."""
+    def __init__(self, message="Requested data not found"):  
+        self.message = message
+        super().__init__(self.message)
+
+class InvalidInputError(CustomError):
+    """Exception raised for invalid inputs."""
+    def __init__(self, input_value, message="Invalid input provided"):  
+        self.input_value = input_value
+        self.message = f'{message}: {input_value}'
+        super().__init__(self.message)
+
+class ProcessingError(CustomError):
+    """Exception raised during processing errors."""
+    def __init__(self, message="Error occurred while processing"):  
+        self.message = message
+        super().__init__(self.message)
+
+class ValidationError(CustomError):
     """Exception raised for validation errors."""
-    def __init__(self, message, field=None):
-        self.message = message
-        self.field = field
-        super().__init__(self.message)
-
-    def __str__(self):
-        return f'ValidationError: {self.message} (Field: {self.field})'
-
-class DatabaseError(CustomException):
-    """Exception raised for database errors."""
-    def __init__(self, message):
+    def __init__(self, message="Validation failed"):  
         self.message = message
         super().__init__(self.message)
 
-    def __str__(self):
-        return f'DatabaseError: {self.message}'
+# Example usage of custom exceptions:
 
-class AuthenticationError(CustomException):
-    """Exception raised for authentication errors."""
-    def __init__(self, message='Authentication failed'): 
-        self.message = message
-        super().__init__(self.message)
+def find_data(data_dict, key):
+    if key not in data_dict:
+        raise DataNotFoundError(f'Key: {key}')
+    return data_dict[key]
 
-    def __str__(self): 
-        return self.message
 
-class FileNotFoundError(CustomException):
-    """Exception raised when a file is not found."""
-    def __init__(self, filename):
-        self.filename = filename
-        self.message = f'File not found: {self.filename}'
-        super().__init__(self.message)
-
-    def __str__(self):
-        return self.message
+def validate_number(num):
+    if not isinstance(num, (int, float)):
+        raise InvalidInputError(num)
+    return True
