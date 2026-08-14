@@ -1,34 +1,44 @@
-import json
-from typing import Any, Dict, List, Union
+def optimized_compute(data):
+    from itertools import accumulate
+    
+    # Using accumulate to improve performance over manual loops
+    return list(accumulate(data))
 
-def read_json(file_path: str) -> Union[Dict[str, Any], None]:
-    try:
-        with open(file_path, 'r') as file:
-            return json.load(file)
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f'Error reading {file_path}: {str(e)}')
-        return None
 
-def write_json(file_path: str, data: Dict[str, Any]) -> bool:
-    try:
-        with open(file_path, 'w') as file:
-            json.dump(data, file, indent=4)
-        return True
-    except IOError as e:
-        print(f'Error writing to {file_path}: {str(e)}')
-        return False
+def filter_even_numbers(nums):
+    return (num for num in nums if num % 2 == 0)
 
-def flatten_list(nested_list: List[Union[int, List]]) -> List[int]:
-    if not isinstance(nested_list, list):
-        return [nested_list]  # base case
-    flattened = []
-    for item in nested_list:
-        flattened.extend(flatten_list(item))
-    return flattened
 
-def chunk_list(data: List[Any], chunk_size: int) -> List[List[Any]]:
-    return [data[i:i + chunk_size] for i in range(0, len(data), chunk_size)]
+def remove_duplicates(seq):
+    seen = set()
+    return [x for x in seq if not (x in seen or seen.add(x))]  
 
-# Example usage
-if __name__ == '__main__':
-    print(read_json('data.json'))  # Implementing example usage
+
+def batch_process(data, batch_size=10):
+    for i in range(0, len(data), batch_size):
+        yield data[i:i + batch_size]
+
+
+def merge_sorted_lists(list1, list2):
+    merged = []
+    i, j = 0, 0
+    while i < len(list1) and j < len(list2):
+        if list1[i] < list2[j]:
+            merged.append(list1[i])
+            i += 1
+        else:
+            merged.append(list2[j])
+            j += 1
+    merged.extend(list1[i:])
+    merged.extend(list2[j:])
+    return merged
+
+
+def calculate_mean(numbers):
+    return sum(numbers) / len(numbers) if numbers else 0.0
+
+
+def compute_statistics(data):
+    mean_val = calculate_mean(data)
+    filtered_data = list(filter_even_numbers(data))
+    return mean_val, filtered_data
