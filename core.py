@@ -1,28 +1,27 @@
-import json
+def process_data(data):
+    if not isinstance(data, dict):
+        raise ValueError('Input must be a dictionary')
+    # Additional input validation
+    if 'name' not in data or not data['name']:
+        raise ValueError('Missing or empty name')
+    if 'age' in data:
+        if not isinstance(data['age'], int) or data['age'] < 0:
+            raise ValueError('Age must be a non-negative integer')
+    # Main processing logic
+    print(f"Processing data for: {data['name']} with age: {data.get('age', 'N/A')}")
 
-class InputValidationError(Exception):
-    pass
-
-def validate_input(user_input):
-    if not isinstance(user_input, str):
-        raise InputValidationError('Input must be a string')
-    if len(user_input) == 0:
-        raise InputValidationError('Input cannot be empty')
-    return user_input
-
-def main_processing_loop():
-    while True:
-        user_input = input('Enter some data (or type "exit" to quit): ')
-        if user_input.lower() == 'exit':
-            break
+def main():
+    users = [
+        {'name': 'Alice', 'age': 30},
+        {'name': '', 'age': 25},  # This will raise an error
+        {'name': 'Bob', 'age': -5},
+        {'name': 'Charlie'}
+    ]
+    for user in users:
         try:
-            validated_input = validate_input(user_input)
-            process_input(validated_input)
-        except InputValidationError as e:
-            print(f'Error: {e}')
-
-def process_input(validated_input):
-    print(f'Processing: {validated_input}')
+            process_data(user)
+        except ValueError as e:
+            print(f'Error processing user {user}: {e}')
 
 if __name__ == '__main__':
-    main_processing_loop()
+    main()
