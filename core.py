@@ -1,27 +1,37 @@
-def process_data(data):
-    if not isinstance(data, dict):
-        raise ValueError('Input must be a dictionary')
-    # Additional input validation
-    if 'name' not in data or not data['name']:
-        raise ValueError('Missing or empty name')
-    if 'age' in data:
-        if not isinstance(data['age'], int) or data['age'] < 0:
-            raise ValueError('Age must be a non-negative integer')
-    # Main processing logic
-    print(f"Processing data for: {data['name']} with age: {data.get('age', 'N/A')}")
+def divide_numbers(numerator, denominator):
+    if not isinstance(numerator, (int, float)):
+        raise ValueError('Numerator must be a number')
+    if not isinstance(denominator, (int, float)):
+        raise ValueError('Denominator must be a number')
+    if denominator == 0:
+        raise ZeroDivisionError('Cannot divide by zero')
+    return numerator / denominator
 
-def main():
-    users = [
-        {'name': 'Alice', 'age': 30},
-        {'name': '', 'age': 25},  # This will raise an error
-        {'name': 'Bob', 'age': -5},
-        {'name': 'Charlie'}
-    ]
-    for user in users:
-        try:
-            process_data(user)
-        except ValueError as e:
-            print(f'Error processing user {user}: {e}')
+
+def read_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            return file.read()
+    except FileNotFoundError:
+        raise FileNotFoundError(f'File not found: {file_path}')
+    except IOError:
+        raise IOError('Error reading file')
+
+
+def process_data(data):
+    if not isinstance(data, list):
+        raise TypeError('Data must be a list')
+    processed = []
+    for item in data:
+        if not isinstance(item, (int, float)):
+            raise ValueError('Data items must be numbers')
+        processed.append(item ** 2)
+    return processed
+
 
 if __name__ == '__main__':
-    main()
+    try:
+        result = divide_numbers(10, 0)
+        print(result)
+    except Exception as e:
+        print(f'Error: {e}')
