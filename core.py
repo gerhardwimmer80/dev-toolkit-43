@@ -1,43 +1,28 @@
-from typing import List, Dict, Any
+import json
 
-class DataProcessor:
-    def __init__(self, source: str) -> None:
-        """
-        Initializes the DataProcessor with a source.
-        
-        :param source: The source of the data to process.
-        """
-        self.source = source
+class InputValidationError(Exception):
+    pass
 
-    def load_data(self) -> List[Dict[str, Any]]:
-        """
-        Loads data from the specified source.
-        
-        :return: A list of dictionaries representing the data.
-        """
-        # In a real implementation, the data would be loaded from a file or database.
-        return [
-            {'id': 1, 'value': 'example1'},
-            {'id': 2, 'value': 'example2'},
-        ]
+def validate_input(user_input):
+    if not isinstance(user_input, str):
+        raise InputValidationError('Input must be a string')
+    if len(user_input) == 0:
+        raise InputValidationError('Input cannot be empty')
+    return user_input
 
-    def process_data(self, data: List[Dict[str, Any]]) -> List[str]:
-        """
-        Processes the loaded data and extracts values.
-        
-        :param data: A list of dictionaries containing data.
-        :return: A list of processed string values.
-        """
-        return [item['value'] for item in data if 'value' in item]
+def main_processing_loop():
+    while True:
+        user_input = input('Enter some data (or type "exit" to quit): ')
+        if user_input.lower() == 'exit':
+            break
+        try:
+            validated_input = validate_input(user_input)
+            process_input(validated_input)
+        except InputValidationError as e:
+            print(f'Error: {e}')
 
-    def run(self) -> None:
-        """
-        Executes the entire data loading and processing workflow.
-        """
-        data = self.load_data()
-        processed_data = self.process_data(data)
-        print(processed_data)
+def process_input(validated_input):
+    print(f'Processing: {validated_input}')
 
 if __name__ == '__main__':
-    processor = DataProcessor('data_source.txt')
-    processor.run()
+    main_processing_loop()
