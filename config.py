@@ -2,33 +2,26 @@ import json
 import os
 
 class ConfigLoader:
-    def __init__(self, default_settings=None, env_file='.env'):
-        self.default_settings = default_settings or {}
-        self.env_file = env_file
-        self.loaded_settings = {}
-        self.load_env_variables()
+    def __init__(self, default_config_path):
+        self.default_config_path = default_config_path
+        self.config = self.load_defaults()
 
-    def load_env_variables(self):
-        if os.path.exists(self.env_file):
-            with open(self.env_file) as f:
-                for line in f.readlines():
-                    key, value = line.strip().split('=', 1)
-                    self.loaded_settings[key] = value
+    def load_defaults(self):
+        with open(self.default_config_path) as f:
+            return json.load(f)
 
-    def get(self, key, default=None):
-        return self.loaded_settings.get(key, self.default_settings.get(key, default))
+    def load_from_env(self, env_prefix):
+        for key in os.environ:
+            if key.startswith(env_prefix):
+                config_key = key[len(env_prefix):].lower()
+                self.config[config_key] = os.environ[key]
 
-    def load_json_config(self, json_file):
-        if os.path.exists(json_file):
-            with open(json_file, 'r') as f:
-                json_config = json.load(f)
-                self.loaded_settings.update(json_config)
+    def get_config(self):
+        return self.config
 
-    def get_all_settings(self):
-        return {**self.default_settings, **self.loaded_settings}
-
-# Example usage:
-# default_config = {'APP_MODE': 'development', 'DEBUG': True}
-# config_loader = ConfigLoader(default_settings=default_config)
-# config_loader.load_json_config('config.json')
-# app_mode = config_loader.get('APP_MODE')
+if __name__ == '__main__':
+    default_config_file = 'default_config.json'
+    loader = ConfigLoader(default_config_file)
+    loader.load_from_env('MYAPP_')
+    final_config = loader.get_config()
+    print(final_config)
