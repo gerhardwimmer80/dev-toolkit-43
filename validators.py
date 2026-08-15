@@ -1,27 +1,20 @@
-import re
+def validate_input(input_data):
+    if not isinstance(input_data, dict):
+        raise ValueError("Input must be a dictionary")
+    required_keys = ['name', 'age', 'email']
+    for key in required_keys:
+        if key not in input_data:
+            raise ValueError(f'Missing required key: {key}')
+        if key == 'age' and not (0 < input_data[key] < 120):
+            raise ValueError('Age must be between 1 and 119')
+    if '@' not in input_data['email']:
+        raise ValueError('Invalid email format')
+    return True
 
-class DataValidator:
-    def __init__(self):
-        self.email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        self.phone_regex = r'^(\+?\d{1,3}[- ]?)?\(?\d{1,4}?\)?[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}$'
-
-    def validate_email(self, email):
-        if re.match(self.email_regex, email):
-            return True
-        return False
-
-    def validate_phone(self, phone):
-        if re.match(self.phone_regex, phone):
-            return True
-        return False
-
-    def validate_username(self, username):
-        if 3 <= len(username) <= 30 and re.match('^[a-zA-Z0-9_]+$', username):
-            return True
-        return False
-
-# Example usage:
-# validator = DataValidator()
-# print(validator.validate_email('test@example.com'))
-# print(validator.validate_phone('+123-456-7890'))
-# print(validator.validate_username('user_name_123'))
+if __name__ == '__main__':
+    test_input = {'name': 'Alice', 'age': 30, 'email': 'alice@example.com'}
+    try:
+        validate_input(test_input)
+        print("Input is valid.")
+    except ValueError as e:
+        print(f'Input validation error: {e}')
