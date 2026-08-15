@@ -1,26 +1,27 @@
-import time
-import requests
-from requests.exceptions import RequestException
+import re
 
-def retry_request(url, retries=3, backoff=1):
-    for attempt in range(retries):
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json()
-        except RequestException as e:
-            if attempt < retries - 1:
-                wait_time = backoff * (2 ** attempt)
-                print(f"Attempt {attempt + 1} failed: {e}. Retrying in {wait_time} seconds...")
-                time.sleep(wait_time)
-            else:
-                print(f"All {retries} attempts failed.")
-                raise
+class DataValidator:
+    def __init__(self):
+        self.email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        self.phone_regex = r'^(\+?\d{1,3}[- ]?)?\(?\d{1,4}?\)?[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}$'
 
-# Example use case
-if __name__ == '__main__':
-    try:
-        data = retry_request('https://api.example.com/data')
-        print(data)
-    except Exception as e:
-        print(f"Failed to fetch data: {e}")
+    def validate_email(self, email):
+        if re.match(self.email_regex, email):
+            return True
+        return False
+
+    def validate_phone(self, phone):
+        if re.match(self.phone_regex, phone):
+            return True
+        return False
+
+    def validate_username(self, username):
+        if 3 <= len(username) <= 30 and re.match('^[a-zA-Z0-9_]+$', username):
+            return True
+        return False
+
+# Example usage:
+# validator = DataValidator()
+# print(validator.validate_email('test@example.com'))
+# print(validator.validate_phone('+123-456-7890'))
+# print(validator.validate_username('user_name_123'))
