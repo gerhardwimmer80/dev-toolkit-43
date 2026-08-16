@@ -1,36 +1,33 @@
-import time
-import random
+PI = 3.14159
+GRAVITY = 9.81
+SPEED_OF_LIGHT = 299792458
+EULER = 2.71828
 
-MAX_RETRIES = 5
-DELAY_MULTIPLIER = 2
-BASE_DELAY = 1
+COLORS = {
+    'black': '#000000',
+    'white': '#FFFFFF',
+    'red': '#FF0000',
+    'green': '#00FF00',
+    'blue': '#0000FF',
+}
 
-class RetryException(Exception):
-    pass
+HTTP_STATUS_CODES = {
+    200: 'OK',
+    404: 'Not Found',
+    500: 'Internal Server Error',
+}
 
+DEFAULT_CONFIG = {
+    'retry_attempts': 3,
+    'timeout': 30,
+    'api_key': 'your_api_key_here',
+}
 
-def retry_decorator(func):
-    def wrapper(*args, **kwargs):
-        for attempt in range(1, MAX_RETRIES + 1):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                if attempt == MAX_RETRIES:
-                    raise RetryException(f'Operation failed after {MAX_RETRIES} attempts') from e
-                delay = BASE_DELAY * (DELAY_MULTIPLIER ** (attempt - 1)) + random.uniform(0, 1)
-                time.sleep(delay)
-                print(f'Retry #{attempt} for {func.__name__} in {delay:.2f} seconds')
-    return wrapper
+MAX_CONNECTIONS = 100
+MIN_PASSWORD_LENGTH = 8
 
-@retry_decorator
-def network_operation():
-    if random.choice([True, False]):
-        raise Exception('Network error occurred')
-    return 'Success!'
-
-if __name__ == '__main__':
-    try:
-        result = network_operation()
-        print(result)
-    except RetryException as e:
-        print(e)
+CURRENCY_SYMBOLS = {
+    'USD': '$',
+    'EUR': '€',
+    'JPY': '¥',
+}
