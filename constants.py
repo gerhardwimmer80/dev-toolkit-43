@@ -1,21 +1,36 @@
 import time
 import random
 
-RETRY_MAX_ATTEMPTS = 5
-RETRY_DELAY_BASE = 1  # seconds
+MAX_RETRIES = 5
+DELAY_MULTIPLIER = 2
+BASE_DELAY = 1
 
-EXCEPTIONS_TO_HANDLE = (ConnectionError, TimeoutError)
+class RetryException(Exception):
+    pass
 
 
-def retry_operation(operation, max_retries=RETRY_MAX_ATTEMPTS, base_delay=RETRY_DELAY_BASE):
-    attempts = 0
-    while attempts < max_retries:
-        try:
-            return operation()
-        except EXCEPTIONS_TO_HANDLE as e:
-            attempts += 1
-            delay = base_delay * (2 ** (attempts - 1)) + random.uniform(0, 1)  # Jitter
-            print(f'Attempt {attempts} failed: {e}. Retrying in {delay:.2f} seconds.')
-            time.sleep(delay)
-    raise Exception(f'Operation failed after {max_retries} attempts')
+def retry_decorator(func):
+    def wrapper(*args, **kwargs):
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if attempt == MAX_RETRIES:
+                    raise RetryException(f'Operation failed after {MAX_RETRIES} attempts') from e
+                delay = BASE_DELAY * (DELAY_MULTIPLIER ** (attempt - 1)) + random.uniform(0, 1)
+                time.sleep(delay)
+                print(f'Retry #{attempt} for {func.__name__} in {delay:.2f} seconds')
+    return wrapper
 
+@retry_decorator
+def network_operation():
+    if random.choice([True, False]):
+        raise Exception('Network error occurred')
+    return 'Success!'
+
+if __name__ == '__main__':
+    try:
+        result = network_operation()
+        print(result)
+    except RetryException as e:
+        print(e)
