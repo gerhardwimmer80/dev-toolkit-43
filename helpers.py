@@ -1,39 +1,28 @@
-def add_numbers(a, b):
-    return a + b
+import time
+import requests
 
-def subtract_numbers(a, b):
-    return a - b
+class NetworkError(Exception):
+    pass
 
-def multiply_numbers(a, b):
-    return a * b
+def retry_request(url, retries=3, backoff=1):
+    attempt = 0
+    while attempt < retries:
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as e:
+            attempt += 1
+            if attempt == retries:
+                raise NetworkError(f'Failed to fetch {url} after {retries} attempts') from e
+            time.sleep(backoff * (2 ** (attempt - 1)))  # Exponential backoff
+            continue
+    return None
 
-def divide_numbers(a, b):
-    if b == 0:
-        raise ValueError('Cannot divide by zero')
-    return a / b
-
-def is_even(n):
-    return n % 2 == 0
-
-def find_max(numbers):
-    if not numbers:
-        raise ValueError('The list is empty')
-    max_value = numbers[0]
-    for number in numbers:
-        if number > max_value:
-            max_value = number
-    return max_value
-
-def find_min(numbers):
-    if not numbers:
-        raise ValueError('The list is empty')
-    min_value = numbers[0]
-    for number in numbers:
-        if number < min_value:
-            min_value = number
-    return min_value
-
-def average(numbers):
-    if not numbers:
-        raise ValueError('The list is empty')
-    return sum(numbers) / len(numbers)
+# Example usage
+if __name__ == '__main__':
+    try:
+        result = retry_request('https://api.example.com/data')
+        print(result)
+    except NetworkError as e:
+        print(e)
