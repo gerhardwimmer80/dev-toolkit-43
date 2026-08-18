@@ -1,28 +1,43 @@
-import time
-import requests
+def flatten_list(nested_list):
+    return [item for sublist in nested_list for item in sublist]
 
-class NetworkError(Exception):
-    pass
 
-def retry_request(url, retries=3, backoff=1):
-    attempt = 0
-    while attempt < retries:
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            attempt += 1
-            if attempt == retries:
-                raise NetworkError(f'Failed to fetch {url} after {retries} attempts') from e
-            time.sleep(backoff * (2 ** (attempt - 1)))  # Exponential backoff
-            continue
-    return None
+def unique_elements(iterable):
+    seen = set()
+    return [x for x in iterable if not (x in seen or seen.add(x))]
 
-# Example usage
-if __name__ == '__main__':
+
+def merge_dicts(*dicts):
+    result = {}
+    for d in dicts:
+        result.update(d)
+    return result
+
+
+def batch_process(items, batch_size):
+    for i in range(0, len(items), batch_size):
+        yield items[i:i + batch_size]
+
+
+def safe_divide(x, y):
     try:
-        result = retry_request('https://api.example.com/data')
-        print(result)
-    except NetworkError as e:
-        print(e)
+        return x / y
+    except ZeroDivisionError:
+        return float('inf')
+
+
+def timed_execution(func):
+    import time
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        print(f'Function \'{func.__name__}\' executed in {{end_time - start_time:.4f}} seconds')
+        return result
+    return wrapper
+
+@timed_execution
+
+def example_function(x):
+    return [i ** 2 for i in range(x)]
+
