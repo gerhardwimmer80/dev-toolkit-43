@@ -1,45 +1,27 @@
-def safe_divide(numerator, denominator):
-    try:
-        result = numerator / denominator
-    except ZeroDivisionError:
-        return 'Error: Division by zero is not allowed.'
-    except TypeError:
-        return 'Error: Inputs must be numbers.'
-    else:
-        return result
+import time
+import requests
+from functools import wraps
 
+def retry(max_retries=3, delay=2):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            attempts = 0
+            while attempts < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except requests.RequestException as e:
+                    attempts += 1
+                    print(f'Attempt {attempts} failed: {e}')
+                    if attempts < max_retries:
+                        time.sleep(delay)
+                    else:
+                        raise
+        return wrapper
+    return decorator
 
-def read_file(file_path):
-    try:
-        with open(file_path, 'r') as file:
-            return file.read()
-    except FileNotFoundError:
-        return 'Error: File not found.'
-    except IOError:
-        return 'Error: An I/O error occurred.'
-
-
-def parse_json(json_string):
-    import json
-    try:
-        return json.loads(json_string)
-    except json.JSONDecodeError:
-        return 'Error: Invalid JSON format.'
-    except TypeError:
-        return 'Error: Input must be a string.'
-
-
-def truncate_string(data, max_length):
-    if not isinstance(data, str):
-        return 'Error: Input must be a string.'
-    return data if len(data) <= max_length else data[:max_length] + '...'
-
-
-def main():
-    print(safe_divide(10, 0))  # Division by zero
-    print(read_file('non_existent_file.txt'))  # File not found
-    print(parse_json('{invalid_json'))  # Invalid JSON
-    print(truncate_string('This is a long string that needs shortening.', 20))  # Truncation
-
-if __name__ == '__main__':
-    main()
+@retry(max_retries=5, delay=3)
+def fetch_data(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.json()
