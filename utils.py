@@ -1,27 +1,37 @@
-import time
-import requests
-from functools import wraps
+from typing import Any, Callable, Dict, List, TypeVar, Union
 
-def retry(max_retries=3, delay=2):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            attempts = 0
-            while attempts < max_retries:
-                try:
-                    return func(*args, **kwargs)
-                except requests.RequestException as e:
-                    attempts += 1
-                    print(f'Attempt {attempts} failed: {e}')
-                    if attempts < max_retries:
-                        time.sleep(delay)
-                    else:
-                        raise
-        return wrapper
-    return decorator
+T = TypeVar('T')
 
-@retry(max_retries=5, delay=3)
-def fetch_data(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
+def compose_pipelines(funcs: List[Callable[[Any], Any]]) -> Callable[[Any], Any]:
+    """Chain a sequence of functions into a single pipeline operation."""
+    def pipeline(data: Any) -> Any:
+        for func in funcs:
+            data = func(data)
+        return data
+    return pipeline
+
+def map_keys(data: Dict[str, Any], mapper: Dict[str, str]) -> Dict[str, Any]:
+    """Transform dictionary keys based on a provided translation mapping."""
+    return {mapper.get(k, k): v for k, v in data.items()}
+
+def safe_get(target: Any, keys: str, default: Any = None) -> Any:
+    """Traverse nested structures using dot-notation key strings."""
+    parts = keys.split('.')
+    current = target
+    try:
+        for part in parts:
+            if isinstance(current, dict):
+                current = current[part]
+            else:
+                current = getattr(current, part)
+        return current if current is not None else default
+    except (KeyError, AttributeError, TypeError):
+        return default
+
+def chunk_stream(iterable: List[T], size: int) -> List[List[T]]:
+    """Divide a linear sequence into smaller, manageable chunks."""
+    return [iterable[i : i + size] for i in range(0, len(iterable), size)]
+
+if __name__ == '__main__':
+    data_sample = {'user': {'id': 43, 'name': 'dev'}}
+    print(safe_get(data_sample, 'user.name'))
