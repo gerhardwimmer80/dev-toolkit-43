@@ -1,43 +1,46 @@
-def flatten_list(nested_list):
-    return [item for sublist in nested_list for item in sublist]
+import re
+from typing import Any, Callable
 
 
-def unique_elements(iterable):
-    seen = set()
-    return [x for x in iterable if not (x in seen or seen.add(x))]
+class Flow:
+    """An unusual pipeline utility for chaining common string and list transformations."""
 
+    def __init__(self, value: Any):
+        self._value = value
 
-def merge_dicts(*dicts):
-    result = {}
-    for d in dicts:
-        result.update(d)
-    return result
+    @property
+    def value(self) -> Any:
+        return self._value
 
+    def __lshift__(self, func: Callable) -> "Flow":
+        """Apply a unary function to the current value using << operator."""
+        return Flow(func(self._value))
 
-def batch_process(items, batch_size):
-    for i in range(0, len(items), batch_size):
-        yield items[i:i + batch_size]
+    def slugify(self) -> "Flow":
+        """Convert string representation to a URL-friendly slug."""
+        val = str(self._value).lower().strip()
+        val = re.sub(r"[^\\w\\s-]", "", val)
+        val = re.sub(r"[\\s_-]+", "-", val)
+        return Flow(val)
 
+    def extract_numbers(self) -> "Flow":
+        """Extract all integers from text or sequence as a list of integers."""
+        if isinstance(self._value, (list, tuple)):
+            text = " ".join(map(str, self._value))
+        else:
+            text = str(self._value)
+        nums = [int(n) for n in re.findall(r"\\d+", text)]
+        return Flow(nums)
 
-def safe_divide(x, y):
-    try:
-        return x / y
-    except ZeroDivisionError:
-        return float('inf')
+    def chunk(self, size: int) -> "Flow":
+        """Chunk a sequence into sub-lists of a specified size."""
+        if not hasattr(self._value, "__iter__") or isinstance(self._value, str):
+            seq = [self._value]
+        else:
+            seq = list(self._value)
+        chunked = [seq[i : i + size] for i in range(0, len(seq), size)]
+        return Flow(chunked)
 
-
-def timed_execution(func):
-    import time
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        print(f'Function \'{func.__name__}\' executed in {{end_time - start_time:.4f}} seconds')
-        return result
-    return wrapper
-
-@timed_execution
-
-def example_function(x):
-    return [i ** 2 for i in range(x)]
-
+    def compact(self) -> "Flow":
+        """Remove all truthy-falsy empty values from a sequence."""
+        if hasattr(self._value, "__iter__") and not
