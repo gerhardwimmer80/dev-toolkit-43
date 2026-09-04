@@ -1,38 +1,35 @@
 import json
 import os
+from typing import Any, Dict
 
 class ConfigLoader:
-    def __init__(self, default_config: dict = None):
-        self.default_config = default_config or {}
-        self.loaded_config = self.default_config.copy()
+    def __init__(self, defaults: Dict[str, Any], config_path: str = "config.json"):
+        self.defaults = defaults
+        self.path = config_path
+        self.settings = self._load()
 
-    def load_from_file(self, filepath: str):
-        if not os.path.exists(filepath):
-            return
-        with open(filepath, 'r') as file:
-            file_config = json.load(file)
-            self.merge_config(file_config)
+    def _load(self) -> Dict[str, Any]:
+        if not os.path.exists(self.path):
+            return self.defaults
+        try:
+            with open(self.path, "r") as f:
+                loaded = json.load(f)
+            return {**self.defaults, **loaded}
+        except (json.JSONDecodeError, IOError):
+            return self.defaults
 
-    def merge_config(self, new_config: dict):
-        for key, value in new_config.items():
-            if isinstance(value, dict) and key in self.loaded_config:
-                self.loaded_config[key] = self.merge_dicts(self.loaded_config[key], value)
-            else:
-                self.loaded_config[key] = value
+    def __getattr__(self, name: str) -> Any:
+        if name in self.settings:
+            return self.settings[name]
+        raise AttributeError(f"Key '{name}' not found in configuration")
 
-    def merge_dicts(self, dict1: dict, dict2: dict) -> dict:
-        for key, value in dict2.items():
-            if key in dict1 and isinstance(dict1[key], dict):
-                dict1[key] = self.merge_dicts(dict1[key], value)
-            else:
-                dict1[key] = value
-        return dict1
+    def __getitem__(self, key: str) -> Any:
+        return self.settings[key]
 
-    def get_config(self):
-        return self.loaded_config
+    def update(self, **kwargs):
+        self.settings.update(kwargs)
+        with open(self.path, "w") as f:
+            json.dump(self.settings, f, indent=4)
 
-# Example usage:
-# default_config = {'app_name': 'MyApp', 'version': '1.0', 'settings': {}}  
-# config_loader = ConfigLoader(default_config)
-# config_loader.load_from_file('config.json')  
-# config = config_loader.get_config()
+def get_config(defaults: Dict[str, Any]) -> ConfigLoader:
+    return ConfigLoader(defaults)
