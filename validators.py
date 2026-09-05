@@ -1,33 +1,30 @@
+import time
 import functools
+from typing import Callable, Any
 
-def validate_schema(schema):
-    def decorator(func):
+def retry_operation(max_attempts: int = 3, delay: float = 1.0):
+    """Decorator implementing exponential backoff for network instability."""
+    def decorator(func: Callable):
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            data = kwargs.get('data') or (args[0] if args else None)
-            for key, expected_type in schema.items():
-                if not isinstance(data.get(key), expected_type):
-                    raise ValueError(f'invalid type for {key}, expected {expected_type.__name__}')
-            return func(*args, **kwargs)
+        def wrapper(*args, **kwargs) -> Any:
+            last_exception = None
+            current_delay = delay
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except (ConnectionError, TimeoutError) as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        time.sleep(current_delay)
+                        current_delay *= 2
+            raise last_exception
         return wrapper
     return decorator
 
-class InputProcessor:
-    def __init__(self):
-        self.schema = {'id': int, 'payload': str}
-
-    @validate_schema({'id': int, 'payload': str})
-    def process(self, data):
-        print(f'Processing {data["id"]}: {data["payload"]}')
-
-def run_loop(input_stream):
-    processor = InputProcessor()
-    for item in input_stream:
-        try:
-            processor.process(data=item)
-        except (ValueError, AttributeError) as e:
-            print(f'stream corruption detected: {e}')
-
-if __name__ == '__main__':
-    mock_data = [{'id': 1, 'payload': 'hello'}, {'id': 'bad', 'payload': 'oops'}]
-    run_loop(mock_data)
+@retry_operation(max_attempts=3, delay=0.5)
+def fetch_remote_resource(url: str) -> str:
+    # simulate potential unstable network call
+    import random
+    if random.random() < 0.7:
+        raise ConnectionError("transient network glitch")
+    return f"content from {url}"
