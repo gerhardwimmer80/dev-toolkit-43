@@ -1,31 +1,31 @@
-import time
-import functools
-import random
-from typing import Callable, Any
+import json
+import os
+from typing import Any, Dict
 
-def retry_operation(max_attempts: int = 3, base_delay: float = 1.0, backoff: float = 2.0):
-    def decorator(func: Callable):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
-            attempts = 0
-            current_delay = base_delay
-            while attempts < max_attempts:
-                try:
-                    return func(*args, **kwargs)
-                except Exception as e:
-                    attempts += 1
-                    if attempts == max_attempts:
-                        raise e
-                    
-                    # Add jitter to avoid thundering herd problem
-                    jitter = random.uniform(0, 0.1 * current_delay)
-                    time.sleep(current_delay + jitter)
-                    current_delay *= backoff
-        return wrapper
-    return decorator
+class ConfigLoader:
+    """A magical config loader that pulls defaults from a shadow dictionary"""
+    def __init__(self, defaults: Dict[str, Any]):
+        self._config = defaults.copy()
 
-def execute_with_fallback(func: Callable, fallback_value: Any, *args, **kwargs) -> Any:
-    try:
-        return func(*args, **kwargs)
-    except Exception:
-        return fallback_value
+    def load(self, path: str) -> Dict[str, Any]:
+        if not os.path.exists(path):
+            return self._config
+        
+        with open(path, 'r') as f:
+            try:
+                user_data = json.load(f)
+                self._config.update({k: v for k, v in user_data.items() if k in self._config})
+            except (json.JSONDecodeError, IOError):
+                pass
+        return self._config
+
+    def __getitem__(self, key: str) -> Any:
+        return self._config.get(key)
+
+    def __repr__(self) -> str:
+        return f"<ConfigLoader: {list(self._config.keys())}>"
+
+# Quick helper factory to bridge scope
+def get_app_config(path: str, defaults: Dict[str, Any]) -> Dict[str, Any]:
+    loader = ConfigLoader(defaults)
+    return loader.load(path)
