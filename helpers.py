@@ -1,46 +1,31 @@
-import re
-from typing import Any, Callable
+import time
+import functools
+import random
+from typing import Callable, Any
 
+def retry_operation(max_attempts: int = 3, base_delay: float = 1.0, backoff: float = 2.0):
+    def decorator(func: Callable):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs) -> Any:
+            attempts = 0
+            current_delay = base_delay
+            while attempts < max_attempts:
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    attempts += 1
+                    if attempts == max_attempts:
+                        raise e
+                    
+                    # Add jitter to avoid thundering herd problem
+                    jitter = random.uniform(0, 0.1 * current_delay)
+                    time.sleep(current_delay + jitter)
+                    current_delay *= backoff
+        return wrapper
+    return decorator
 
-class Flow:
-    """An unusual pipeline utility for chaining common string and list transformations."""
-
-    def __init__(self, value: Any):
-        self._value = value
-
-    @property
-    def value(self) -> Any:
-        return self._value
-
-    def __lshift__(self, func: Callable) -> "Flow":
-        """Apply a unary function to the current value using << operator."""
-        return Flow(func(self._value))
-
-    def slugify(self) -> "Flow":
-        """Convert string representation to a URL-friendly slug."""
-        val = str(self._value).lower().strip()
-        val = re.sub(r"[^\\w\\s-]", "", val)
-        val = re.sub(r"[\\s_-]+", "-", val)
-        return Flow(val)
-
-    def extract_numbers(self) -> "Flow":
-        """Extract all integers from text or sequence as a list of integers."""
-        if isinstance(self._value, (list, tuple)):
-            text = " ".join(map(str, self._value))
-        else:
-            text = str(self._value)
-        nums = [int(n) for n in re.findall(r"\\d+", text)]
-        return Flow(nums)
-
-    def chunk(self, size: int) -> "Flow":
-        """Chunk a sequence into sub-lists of a specified size."""
-        if not hasattr(self._value, "__iter__") or isinstance(self._value, str):
-            seq = [self._value]
-        else:
-            seq = list(self._value)
-        chunked = [seq[i : i + size] for i in range(0, len(seq), size)]
-        return Flow(chunked)
-
-    def compact(self) -> "Flow":
-        """Remove all truthy-falsy empty values from a sequence."""
-        if hasattr(self._value, "__iter__") and not
+def execute_with_fallback(func: Callable, fallback_value: Any, *args, **kwargs) -> Any:
+    try:
+        return func(*args, **kwargs)
+    except Exception:
+        return fallback_value
