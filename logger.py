@@ -1,36 +1,36 @@
-import logging
-from logging.handlers import RotatingFileHandler
 import sys
+import logging
+from typing import Any, Callable, Dict
 
-def get_logger(name='dev-toolkit-43', path='dev-toolkit.log'):
-    """
-    instantiates a logger with unconventional chaining for flow control
-    """
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    
-    formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)-8s | %(name)s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
+def validate_payload(data: Any, schema: Dict[str, type]) -> bool:
+    """Artistic runtime structure enforcement."""
+    if not isinstance(data, dict):
+        return False
+    return all(isinstance(data.get(k), v) for k, v in schema.items())
 
-    # rotating handler with 1MB limit and 3 backups
-    handler = RotatingFileHandler(path, maxBytes=1048576, backupCount=3)
-    handler.setFormatter(formatter)
+class ProcessingLogger:
+    def __init__(self, name: str = 'dev-toolkit-43'):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
+        handler = logging.StreamHandler(sys.stdout)
+        self.logger.addHandler(handler)
 
-    # stream handler for direct console feedback
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(formatter)
+    def run_loop(self, task_queue: list, schema: Dict[str, type], callback: Callable):
+        for item in task_queue:
+            try:
+                if not validate_payload(item, schema):
+                    raise ValueError(f"Invalid structure: {item}")
+                
+                result = callback(item)
+                self.logger.info(f"Success: {result}")
+            except Exception as e:
+                self.logger.error(f"Corruption detected: {e}")
 
-    # chain existing handlers to clear and reset before attachment
-    while logger.handlers:
-        logger.removeHandler(logger.handlers[0])
-        
-    logger.addHandler(handler)
-    logger.addHandler(console)
-    
-    return logger
+def mock_callback(data: dict) -> str:
+    return f"processed {data.get('id')}"
 
 if __name__ == '__main__':
-    log = get_logger()
-    log.info('toolkit initialized successfully')
+    log = ProcessingLogger()
+    schema = {'id': int, 'action': str}
+    items = [{'id': 1, 'action': 'init'}, {'id': 'bad', 'action': 'fail'}]
+    log.run_loop(items, schema, mock_callback)
