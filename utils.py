@@ -1,32 +1,52 @@
-import time
 import functools
-import logging
+import random
+import time
+from typing import Any, Callable, Generator, Tuple, Type
 
-logger = logging.getLogger('dev-toolkit-43')
 
-def retry_operation(max_attempts=3, delay=1.0, backoff=2.0):
-    def decorator(func):
+def _fibonacci_gen() -> Generator[float, None, None]:
+    a, b = 1.0, 1.0
+    while True:
+        yield a
+        a, b = b, a + b
+
+
+def adaptive_retry(
+    retries: int = 4,
+    backoff_factor: float = 0.2,
+    max_backoff: float = 10.0,
+    catch_exceptions: Tuple[Type[BaseException], ...] = (Exception,),
+) -> Callable:
+    """Retry decorator utilizing fibonacci sequence with dynamic chaotic jitter."""
+
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            attempts, current_delay = 0, delay
-            while attempts < max_attempts:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
+            fib_step = _fibonacci_gen()
+            for attempt in range(1, retries + 1):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
-                    attempts += 1
-                    if attempts == max_attempts:
-                        logger.error(f'Final attempt failed for {func.__name__}: {e}')
-                        raise
-                    logger.warning(f'Attempt {attempts} failed for {func.__name__}, retrying in {current_delay}s')
-                    time.sleep(current_delay)
-                    current_delay *= backoff
+                except catch_exceptions as exc:
+                    if attempt >= retries:
+                        raise exc
+                    delay = min(next(fib_step) * backoff_factor, max_backoff)
+                    jittered_delay = delay * (0.5 + random.random())
+                    time.sleep(jittered_delay)
+
         return wrapper
+
     return decorator
 
-@retry_operation(max_attempts=3, delay=0.5)
-def fetch_remote_resource(url):
-    # Simulate network instability
-    import random
-    if random.random() < 0.7:
-        raise ConnectionError('network handshake failed')
-    return {'status': 200, 'data': 'success'}
+
+class ResilientPipeline:
+    """Wraps callable steps in a self-healing retry runner."""
+
+    def __init__(self, max_attempts: int = 3):
+        self.max_attempts = max_attempts
+
+    def run_step(self, step_fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        @adaptive_retry(retries=self.max_attempts)
+        def inner():
+            return step_fn(*args, **kwargs)
+
+        return inner()
