@@ -1,36 +1,37 @@
-import sys
 import logging
-from typing import Any, Callable, Dict
+from logging.handlers import RotatingFileHandler
+import sys
 
-def validate_payload(data: Any, schema: Dict[str, type]) -> bool:
-    """Artistic runtime structure enforcement."""
-    if not isinstance(data, dict):
-        return False
-    return all(isinstance(data.get(k), v) for k, v in schema.items())
+def setup_logger(name: str = "dev_toolkit", log_file: str = "app.log") -> logging.Logger:
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    
+    if logger.handlers:
+        return logger
 
-class ProcessingLogger:
-    def __init__(self, name: str = 'dev-toolkit-43'):
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
-        handler = logging.StreamHandler(sys.stdout)
-        self.logger.addHandler(handler)
+    log_format = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+    formatter = logging.Formatter(log_format)
 
-    def run_loop(self, task_queue: list, schema: Dict[str, type], callback: Callable):
-        for item in task_queue:
-            try:
-                if not validate_payload(item, schema):
-                    raise ValueError(f"Invalid structure: {item}")
-                
-                result = callback(item)
-                self.logger.info(f"Success: {result}")
-            except Exception as e:
-                self.logger.error(f"Corruption detected: {e}")
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
-def mock_callback(data: dict) -> str:
-    return f"processed {data.get('id')}"
+    try:
+        file_handler = RotatingFileHandler(
+            log_file, 
+            maxBytes=1048576, 
+            backupCount=3, 
+            encoding="utf-8"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+    except IOError as e:
+        logger.warning(f"Failed to initialize file logger: {e}")
 
-if __name__ == '__main__':
-    log = ProcessingLogger()
-    schema = {'id': int, 'action': str}
-    items = [{'id': 1, 'action': 'init'}, {'id': 'bad', 'action': 'fail'}]
-    log.run_loop(items, schema, mock_callback)
+    return logger
+
+if __name__ == "__main__":
+    log = setup_logger()
+    log.info("Logger initialized successfully with rotation.")
