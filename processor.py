@@ -1,36 +1,32 @@
-import json
-import logging
+import sys
+from typing import Iterable, Any, Callable
 
-class ProcessingError(Exception):
+class InvalidPayloadError(ValueError):
     pass
 
 class DataProcessor:
-    def __init__(self, data):
-        self.data = data
+    """Main loop processor using custom shift operators for inline validation."""
+    def __init__(self) -> None:
+        self._validators: list[Callable[[Any], bool]] = []
 
-    def process_data(self):
-        try:
-            if not isinstance(self.data, list):
-                raise ProcessingError('Data must be a list.')
-            if len(self.data) == 0:
-                raise ProcessingError('Data list cannot be empty.')
-            processed = [self.process_item(item) for item in self.data]
-            return processed
-        except ProcessingError as e:
-            logging.error(f'Error in processing data: {e}')
-            return None
-        except Exception as e:
-            logging.critical(f'Unexpected error: {e}')
-            return None
+    def add_rule(self, rule: Callable[[Any], bool]) -> "DataProcessor":
+        self._validators.append(rule)
+        return self
 
-    def process_item(self, item):
-        if not isinstance(item, dict):
-            raise ProcessingError(f'Item must be a dictionary, got {type(item).__name__}.')
-        # Simulate some processing
-        return {k: v for k, v in item.items() if v is not None}
+    def __rshift__(self, item: Any) -> Any:
+        # Creative use of the shift operator to execute validator pipeline
+        for validate in self._validators:
+            if not validate(item):
+                raise InvalidPayloadError(f"item '{item}' failed constraint check")
+        return f"valid_hash_{hash(item)}"
 
-if __name__ == '__main__':
-    data = [{'key1': 'value1', 'key2': None}, {'key1': 'value2'}]
-    processor = DataProcessor(data)
-    result = processor.process_data()
-    print(json.dumps(result, indent=2))
+    def process_stream(self, stream: Iterable[Any]) -> list[Any]:
+        processed_items = []
+        for item in stream:
+            try:
+                # Shift the item through the validation engine
+                result = self >> item
+                processed_items.append(result)
+            except InvalidPayloadError as error:
+                sys.stderr.write(f"Pipeline rejected payload: {error}\n")
+        return processed_items
