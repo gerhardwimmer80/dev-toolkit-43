@@ -1,30 +1,33 @@
-import time
-import functools
-from typing import Callable, Any
+import re
+from typing import Any, Callable, Dict
 
-def retry_operation(max_attempts: int = 3, delay: float = 1.0):
-    """Decorator implementing exponential backoff for network instability."""
-    def decorator(func: Callable):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
-            last_exception = None
-            current_delay = delay
-            for attempt in range(max_attempts):
-                try:
-                    return func(*args, **kwargs)
-                except (ConnectionError, TimeoutError) as e:
-                    last_exception = e
-                    if attempt < max_attempts - 1:
-                        time.sleep(current_delay)
-                        current_delay *= 2
-            raise last_exception
-        return wrapper
-    return decorator
+class InputValidator:
+    """Chainable dynamic validation logic for dev-toolkit-43."""
+    def __init__(self):
+        self.rules: Dict[str, Callable[[Any], bool]] = {
+            "int_range": lambda x: isinstance(x, int) and 0 <= x <= 1000,
+            "no_shell": lambda x: isinstance(x, str) and not re.search(r'[;&|]', x),
+            "non_empty": lambda x: bool(x) and len(str(x).strip()) > 0
+        }
 
-@retry_operation(max_attempts=3, delay=0.5)
-def fetch_remote_resource(url: str) -> str:
-    # simulate potential unstable network call
-    import random
-    if random.random() < 0.7:
-        raise ConnectionError("transient network glitch")
-    return f"content from {url}"
+    def validate(self, data: Dict[str, Any], schema: Dict[str, str]) -> bool:
+        try:
+            return all(self.rules[rule](data.get(field)) for field, rule in schema.items())
+        except (KeyError, TypeError):
+            return False
+
+def process_main_loop(raw_input: Dict[str, Any]):
+    """Execution core with embedded constraint checking."""
+    validator = InputValidator()
+    schema = {"id": "int_range", "payload": "non_empty"}
+    
+    if not validator.validate(raw_input, schema):
+        raise ValueError("malformed input stream detected in core")
+    
+    return f"processing sequence: {raw_input['id']}"
+
+if __name__ == "__main__":
+    # usage in dev-toolkit-43 loop
+    data_packets = [{"id": 42, "payload": "init_cmd"}]
+    for packet in data_packets:
+        print(process_main_loop(packet))
