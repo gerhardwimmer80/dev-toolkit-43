@@ -1,37 +1,37 @@
 import logging
 from logging.handlers import RotatingFileHandler
-import sys
+import os
 
-def setup_logger(name: str = "dev_toolkit", log_file: str = "app.log") -> logging.Logger:
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    
-    if logger.handlers:
-        return logger
-
-    log_format = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
-    formatter = logging.Formatter(log_format)
-
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(formatter)
-    logger.addHandler(console_handler)
-
-    try:
-        file_handler = RotatingFileHandler(
-            log_file, 
-            maxBytes=1048576, 
-            backupCount=3, 
-            encoding="utf-8"
+class CustomLogger:
+    def __init__(self, name='dev-toolkit-43', log_file='app.log'):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.DEBUG)
+        
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+        
+        # Creative twist: Rotating by size but keeping 5 backups
+        handler = RotatingFileHandler(
+            log_file, maxBytes=1024 * 1024 * 5, backupCount=5
         )
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-    except IOError as e:
-        logger.warning(f"Failed to initialize file logger: {e}")
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        
+        # Adding a console stream for visibility
+        console = logging.StreamHandler()
+        console.setFormatter(formatter)
+        self.logger.addHandler(console)
 
-    return logger
+    def get_logger(self):
+        return self.logger
 
-if __name__ == "__main__":
-    log = setup_logger()
-    log.info("Logger initialized successfully with rotation.")
+# Singleton-ish instance for easy import
+setup_logger = CustomLogger().get_logger()
+
+def log_debug(msg: str):
+    setup_logger.debug(f"[DEBUG] {msg}")
+
+def log_info(msg: str):
+    setup_logger.info(f"[INFO] {msg}")
+
+def log_error(msg: str):
+    setup_logger.error(f"[ERROR] {msg}")
