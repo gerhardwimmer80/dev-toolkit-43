@@ -1,41 +1,49 @@
-from typing import Dict, Any, Union, Final
 import os
+import json
+from typing import Any, Dict
 
-ConfigurationType = Dict[str, Union[str, int, bool]]
+class Config:
+    """A dynamic configuration loader with typed environment overrides."""
+    def __init__(self, defaults: Dict[str, Any], prefix: str = "APP_"):
+        self._defaults = defaults
+        self._prefix = prefix
+        self._file_data: Dict[str, Any] = {}
 
-class AppConfig:
-    """Dynamic configuration loader with fallback mechanisms."""
+    def load(self, filepath: str) -> "Config":
+        if os.path.exists(filepath):
+            with open(filepath, "r", encoding="utf-8") as f:
+                try:
+                    self._file_data = json.load(f)
+                except json.JSONDecodeError:
+                    self._file_data = {}
+        return self
 
-    _defaults: Final[ConfigurationType] = {
-        "port": 8080,
-        "debug": False,
-        "environment": "production"
-    }
+    def __getattr__(self, name: str) -> Any:
+        env_key = f"{self._prefix}{name.upper()}"
+        default_val = self._defaults.get(name)
 
-    def __init__(self, prefix: str = "DEV_") -> None:
-        """Initialize config object with optional environment variable prefix."""
-        self._prefix: str = prefix
-        self._cache: ConfigurationType = self._defaults.copy()
-        self._load_from_env()
+        if env_key in os.environ:
+            env_val = os.environ[env_key]
+            if default_val is not None:
+                target_type = type(default_val)
+                if target_type is bool:
+                    return env_val.lower() in ("true", "1", "yes", "on")
+                try:
+                    return target_type(env_val)
+                except (ValueError, TypeError):
+                    return env_val
+            return env_val
 
-    def _load_from_env(self) -> None:
-        """Scan process environment for matching configuration overrides."""
-        for key in self._defaults:
-            env_val = os.getenv(f"{self._prefix}{key.upper()}")
-            if env_val:
-                self._cache[key] = type(self._defaults[key])(env_val)
+        if name in self._file_data:
+            return self._file_data[name]
 
-    def get(self, key: str, default: Any = None) -> Any:
-        """Retrieve value from cached configuration map."""
-        return self._cache.get(key, default)
+        if name in self._defaults:
+            return self._defaults[name]
+
+        raise AttributeError(f"Configuration key {name!r} is undefined")
 
     def __getitem__(self, key: str) -> Any:
-        """Dict-like access for configuration items."""
-        return self._cache[key]
-
-    @property
-    def settings(self) -> ConfigurationType:
-        """Read-only view of active configuration parameters."""
-        return {**self._cache}
-
-config = AppConfig()
+        try:
+            return getattr(self, key)
+        except AttributeError as err:
+            raise KeyError(key) from err
