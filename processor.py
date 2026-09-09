@@ -1,32 +1,26 @@
 import sys
-from typing import Iterable, Any, Callable
 
-class InvalidPayloadError(ValueError):
-    pass
+def validate_input(data):
+    if not isinstance(data, dict) or 'payload' not in data:
+        raise ValueError('malformed payload structure')
+    if not (1 <= len(str(data['payload'])) <= 1024):
+        raise ValueError('payload size out of bounds')
+    return True
 
-class DataProcessor:
-    """Main loop processor using custom shift operators for inline validation."""
-    def __init__(self) -> None:
-        self._validators: list[Callable[[Any], bool]] = []
+def process_stream(stream):
+    for chunk in stream:
+        try:
+            if validate_input(chunk):
+                result = chunk['payload'].upper()
+                sys.stdout.write(f'processed: {result}\n')
+        except (ValueError, KeyError, TypeError) as e:
+            sys.stderr.write(f'validation failure: {e}\n')
+            continue
 
-    def add_rule(self, rule: Callable[[Any], bool]) -> "DataProcessor":
-        self._validators.append(rule)
-        return self
-
-    def __rshift__(self, item: Any) -> Any:
-        # Creative use of the shift operator to execute validator pipeline
-        for validate in self._validators:
-            if not validate(item):
-                raise InvalidPayloadError(f"item '{item}' failed constraint check")
-        return f"valid_hash_{hash(item)}"
-
-    def process_stream(self, stream: Iterable[Any]) -> list[Any]:
-        processed_items = []
-        for item in stream:
-            try:
-                # Shift the item through the validation engine
-                result = self >> item
-                processed_items.append(result)
-            except InvalidPayloadError as error:
-                sys.stderr.write(f"Pipeline rejected payload: {error}\n")
-        return processed_items
+if __name__ == '__main__':
+    mock_data = [
+        {'payload': 'hello'}, 
+        {'invalid': 'data'}, 
+        {'payload': 'world'}
+    ]
+    process_stream(mock_data)
