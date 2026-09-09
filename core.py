@@ -1,49 +1,35 @@
 import functools
-import time
-import uuid
+import logging
 from typing import Callable, Any
 
-def memoize_with_expiry(ttl: int = 300):
-    def decorator(func: Callable):
-        cache = {}
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            key = (args, frozenset(kwargs.items()))
-            now = time.time()
-            if key in cache and now - cache[key][1] < ttl:
-                return cache[key][0]
-            result = func(*args, **kwargs)
-            cache[key] = (result, now)
-            return result
-        return wrapper
-    return decorator
+class ToolkitEngine:
+    def __init__(self, registry: dict = None):
+        self._registry = registry or {}
+        self.log = logging.getLogger('dev-toolkit-43')
 
-def generate_slug(length: int = 8) -> str:
-    return str(uuid.uuid4())[:length]
-
-def dict_deep_merge(base: dict, update: dict) -> dict:
-    for key, value in update.items():
-        if isinstance(value, dict) and key in base and isinstance(base[key], dict):
-            dict_deep_merge(base[key], value)
-        else:
-            base[key] = value
-    return base
-
-def chain(*funcs: Callable) -> Callable:
-    def combined(*args, **kwargs):
-        res = funcs[0](*args, **kwargs)
-        for f in funcs[1:]:
-            res = f(res)
-        return res
-    return combined
-
-class Registry:
-    def __init__(self):
-        self._map = {}
-    def register(self, name: str):
-        def wrapper(func: Callable):
-            self._map[name] = func
+    def register(self, key: str) -> Callable:
+        def decorator(func: Callable) -> Callable:
+            self._registry[key] = func
             return func
-        return wrapper
-    def __call__(self, name: str, *args, **kwargs) -> Any:
-        return self._map[name](*args, **kwargs)
+        return decorator
+
+    def execute(self, key: str, *args: Any, **kwargs: Any) -> Any:
+        if key not in self._registry:
+            raise KeyError(f'Task {key} is missing from runtime registry')
+        return self._registry[key](*args, **kwargs)
+
+    def bulk_cleanup(self, keys: list) -> dict:
+        return {k: self._registry.pop(k) for k in keys if k in self._registry}
+
+    def __repr__(self) -> str:
+        return f'<Engine nodes={len(self._registry)} version=43.0>'
+
+engine = ToolkitEngine()
+
+@engine.register('bootstrap')
+def _bootstrap() -> bool:
+    return True
+
+if __name__ == '__main__':
+    print(engine)
+    engine.execute('bootstrap')
