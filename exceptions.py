@@ -1,36 +1,30 @@
-import functools
-import sys
-import logging
+from typing import Optional, Dict, Any
 
 class ToolkitError(Exception):
-    """Base exception for dev-toolkit-43."""
+    """Base exception for dev-toolkit-43 operations."""
+    def __init__(self, message: str, context: Optional[Dict[str, Any]] = None) -> None:
+        super().__init__(message)
+        self.context = context or {}
 
-class DataIntegrityError(ToolkitError):
-    """Raised when state is inconsistent."""
+class ConfigurationError(ToolkitError):
+    """Raised when config validation fails unexpectedly."""
 
-class EdgeCaseHandler:
-    def __init__(self, logger=None):
-        self.logger = logger or logging.getLogger(__name__)
+class ProcessingError(ToolkitError):
+    """Raised during core data transformation phases."""
 
-    def wrap(self, func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except (ValueError, TypeError, KeyError) as e:
-                self.logger.error(f"caught edge case {type(e).__name__}: {e}")
-                raise DataIntegrityError(f"failed execution: {e}") from e
-            except Exception as e:
-                self.logger.critical(f"unexpected doom: {e}")
-                sys.exit(1)
-        return wrapper
+def raise_if_empty(data: Any, error_type: type = ToolkitError, msg: str = "Payload is empty") -> None:
+    """Conditional exception trigger for pipeline validation."""
+    if not data:
+        raise error_type(msg, {"input": type(data).__name__})
 
-    @staticmethod
-    def safe_extract(data, keys, default=None):
-        """Extracts nested keys using a non-standard path approach."""
-        try:
-            return functools.reduce(lambda d, k: d[k], keys, data)
-        except (KeyError, TypeError, IndexError):
-            return default
+class CircuitBreakerError(ToolkitError):
+    """Custom state for halted execution flows."""
+    def __init__(self, limit: int) -> None:
+        super().__init__(f"Execution limit of {limit} reached")
+        self.limit = limit
 
-__all__ = ['ToolkitError', 'DataIntegrityError', 'EdgeCaseHandler']
+if __name__ == "__main__":
+    try:
+        raise_if_empty(None, ConfigurationError)
+    except ConfigurationError as e:
+        print(f"Caught: {e} with context {e.context}")
