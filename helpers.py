@@ -1,53 +1,63 @@
-import functools
-from typing import Any, Callable, Iterable, List, Dict, Optional
+class SmartDict(dict):
+    """
+    A dict subclass supporting dot-notation, autovivification,
+    and pipe-based transformation mapping.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for key, val in self.items():
+            if isinstance(val, dict) and not isinstance(val, SmartDict):
+                self[key] = SmartDict(val)
 
+    def __getattr__(self, item):
+        if item not in self:
+            self[item] = SmartDict()
+        return self[item]
 
-class Pipe:
-    """A wrapper enabling functional pipeline syntax using the >> operator."""
-    def __init__(self, value: Any):
-        self.value = value
+    def __setattr__(self, key, value):
+        self[key] = value
 
-    def __rshift__(self, func: Callable) -> "Pipe":
+    def __delattr__(self, item):
+        if item in self:
+            del self[item]
+        else:
+            raise AttributeError(f"No such attribute: {item}")
+
+    def __or__(self, func):
         if callable(func):
-            return Pipe(func(self.value))
-        raise TypeError(f"Object {func} is not callable")
+            return func(self)
+        raise TypeError("Pipe operand must be callable")
 
-    def __call__(self) -> Any:
-        return self.value
+    def query(self, path, default=None):
+        current = self
+        for key in path.split('.'):
+            if isinstance(current, dict) and key in current:
+                current = current[key]
+            else:
+                return default
+        return current
 
-    def __repr__(self) -> str:
-        return f"Pipe({self.value!r})"
+
+def prune(d):
+    if not isinstance(d, dict):
+        return d
+    cleaned = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            res = prune(v)
+            if res:
+                cleaned[k] = res
+        elif v not in (None, {}, SmartDict()):
+            cleaned[k] = v
+    return SmartDict(cleaned)
 
 
-def deep_get(data: Dict[str, Any], path: str, default: Any = None, sep: str = ".") -> Any:
-    """Retrieve nested dictionary values using a dot-separated key path."""
-    keys = path.split(sep)
-    curr = data
-    for k in keys:
-        if isinstance(curr, dict) and k in curr:
-            curr = curr[k]
+def flatten(d, parent='', sep='.'):
+    items = []
+    for k, v in d.items():
+        key = f"{parent}{sep}{k}" if parent else k
+        if isinstance(v, dict):
+            items.extend(flatten(v, key, sep=sep).items())
         else:
-            return default
-    return curr
-
-
-def chunkify(iterable: Iterable[Any], size: int) -> List[List[Any]]:
-    """Split an iterable into fixed-size chunks using an iterator generator."""
-    it = iter(iterable)
-    return list(iter(lambda: [val for _, val in zip(range(size), it)], []))
-
-
-def flatten(nested_list: List[Any]) -> List[Any]:
-    """Recursively flatten arbitrarily nested lists or tuples."""
-    result = []
-    for item in nested_list:
-        if isinstance(item, (list, tuple)):
-            result.extend(flatten(item))
-        else:
-            result.append(item)
-    return result
-
-
-def coalesce(*args: Any) -> Any:
-    """Return the first non-None argument passed in."""
-    return next((arg for arg in args if arg is not None), None)
+            items.append((key, v))
+    return dict(items)
