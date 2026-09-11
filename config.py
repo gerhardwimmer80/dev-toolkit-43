@@ -1,49 +1,26 @@
+import logging
 import os
-import json
-from typing import Any, Dict
+import datetime
 
-class Config:
-    """A dynamic configuration loader with typed environment overrides."""
-    def __init__(self, defaults: Dict[str, Any], prefix: str = "APP_"):
-        self._defaults = defaults
-        self._prefix = prefix
-        self._file_data: Dict[str, Any] = {}
+class ErrorThresholdRotatingHandler(logging.FileHandler):
+    def __init__(self, filename, threshold=5, mode='a', encoding=None, delay=False):
+        super().__init__(filename, mode, encoding, delay)
+        self.threshold = threshold
+        self.counter = 0
 
-    def load(self, filepath: str) -> "Config":
-        if os.path.exists(filepath):
-            with open(filepath, "r", encoding="utf-8") as f:
-                try:
-                    self._file_data = json.load(f)
-                except json.JSONDecodeError:
-                    self._file_data = {}
-        return self
+    def emit(self, record):
+        if record.levelno >= logging.WARNING:
+            self.counter += 1
+        super().emit(record)
+        if self.counter >= self.threshold:
+            self.rotate_log()
 
-    def __getattr__(self, name: str) -> Any:
-        env_key = f"{self._prefix}{name.upper()}"
-        default_val = self._defaults.get(name)
-
-        if env_key in os.environ:
-            env_val = os.environ[env_key]
-            if default_val is not None:
-                target_type = type(default_val)
-                if target_type is bool:
-                    return env_val.lower() in ("true", "1", "yes", "on")
-                try:
-                    return target_type(env_val)
-                except (ValueError, TypeError):
-                    return env_val
-            return env_val
-
-        if name in self._file_data:
-            return self._file_data[name]
-
-        if name in self._defaults:
-            return self._defaults[name]
-
-        raise AttributeError(f"Configuration key {name!r} is undefined")
-
-    def __getitem__(self, key: str) -> Any:
-        try:
-            return getattr(self, key)
-        except AttributeError as err:
-            raise KeyError(key) from err
+    def rotate_log(self):
+        self.close()
+        if os.path.exists(self.baseFilename):
+            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+            dir_name, file_name = os.path.split(self.baseFilename)
+            name, ext = os.path.splitext(file_name)
+            new_name = f'{name}_{timestamp}{ext}'
+            new_path = os.path.join(dir_name, new_name)
+            os
