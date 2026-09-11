@@ -1,63 +1,39 @@
-class SmartDict(dict):
-    """
-    A dict subclass supporting dot-notation, autovivification,
-    and pipe-based transformation mapping.
-    """
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for key, val in self.items():
-            if isinstance(val, dict) and not isinstance(val, SmartDict):
-                self[key] = SmartDict(val)
+import os
+import shutil
+from typing import List, Union
+from pathlib import Path
 
-    def __getattr__(self, item):
-        if item not in self:
-            self[item] = SmartDict()
-        return self[item]
+def sanitize_path(path: Union[str, Path]) -> Path:
+    return Path(path).resolve()
 
-    def __setattr__(self, key, value):
-        self[key] = value
+class FileOrchestrator:
+    def __init__(self, root: str = '.'):
+        self.root = sanitize_path(root)
 
-    def __delattr__(self, item):
-        if item in self:
-            del self[item]
-        else:
-            raise AttributeError(f"No such attribute: {item}")
+    def purge_directory(self, target: str, extensions: List[str] = None) -> int:
+        target_path = self.root / target
+        if not target_path.exists():
+            return 0
 
-    def __or__(self, func):
-        if callable(func):
-            return func(self)
-        raise TypeError("Pipe operand must be callable")
+        count = 0
+        for item in target_path.iterdir():
+            if extensions and item.suffix not in extensions:
+                continue
+            
+            if item.is_file():
+                item.unlink()
+                count += 1
+            elif item.is_dir():
+                shutil.rmtree(item)
+                count += 1
+        return count
 
-    def query(self, path, default=None):
-        current = self
-        for key in path.split('.'):
-            if isinstance(current, dict) and key in current:
-                current = current[key]
-            else:
-                return default
-        return current
+def safe_execute(func, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        return {'error': str(e), 'status': 'failed'}
 
-
-def prune(d):
-    if not isinstance(d, dict):
-        return d
-    cleaned = {}
-    for k, v in d.items():
-        if isinstance(v, dict):
-            res = prune(v)
-            if res:
-                cleaned[k] = res
-        elif v not in (None, {}, SmartDict()):
-            cleaned[k] = v
-    return SmartDict(cleaned)
-
-
-def flatten(d, parent='', sep='.'):
-    items = []
-    for k, v in d.items():
-        key = f"{parent}{sep}{k}" if parent else k
-        if isinstance(v, dict):
-            items.extend(flatten(v, key, sep=sep).items())
-        else:
-            items.append((key, v))
-    return dict(items)
+if __name__ == '__main__':
+    orchestrator = FileOrchestrator()
+    print(f'orchestrator active at {orchestrator.root}')
