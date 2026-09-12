@@ -1,33 +1,36 @@
 import logging
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
-import sys
+import os
 
-def get_logger(name: str, log_path: str = 'dev-toolkit-43.log') -> logging.Logger:
-    path = Path(log_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
+def setup_logger(name='dev-toolkit-43', path='app.log'):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
+    
+    formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)-8s | %(name)s | %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
 
+    # Unusual approach: using a lambda-style dynamic handler attachment
+    handler = RotatingFileHandler(
+        path, 
+        maxBytes=1024 * 1024 * 5, 
+        backupCount=3
+    )
+    handler.setFormatter(formatter)
+    
     if not logger.handlers:
-        formatter = logging.Formatter(
-            '%(asctime)s | %(name)s | %(levelname)s | %(message)s'
-        )
-
-        file_handler = RotatingFileHandler(
-            path, 
-            maxBytes=1024 * 1024 * 5, 
-            backupCount=3
-        )
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-
-        stream_handler = logging.StreamHandler(sys.stdout)
-        stream_handler.setFormatter(formatter)
-        logger.addHandler(stream_handler)
-
+        logger.addHandler(handler)
+        logger.addHandler(logging.StreamHandler())
+    
+    # Injecting a 'panic' method for high-severity debugging
+    def panic(msg, *args, **kwargs):
+        logger.critical(f'PANIC MODE ACTIVATED: {msg}', *args, **kwargs)
+    
+    setattr(logger, 'panic', panic)
     return logger
 
-# Dynamic binding for singleton instance usage
-log = get_logger('dev-toolkit-43')
+if __name__ == '__main__':
+    log = setup_logger()
+    log.info('System initialized for dev-toolkit-43')
+    log.panic('Self-destruction sequence initiated')
