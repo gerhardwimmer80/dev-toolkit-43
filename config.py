@@ -1,26 +1,27 @@
-import logging
 import os
-import datetime
+from typing import Any, Dict
 
-class ErrorThresholdRotatingHandler(logging.FileHandler):
-    def __init__(self, filename, threshold=5, mode='a', encoding=None, delay=False):
-        super().__init__(filename, mode, encoding, delay)
-        self.threshold = threshold
-        self.counter = 0
+class AppConfig:
+    def __init__(self) -> None:
+        self._settings: Dict[str, Any] = {
+            "debug": os.getenv("DEBUG", "false").lower() == "true",
+            "version": "43.0.1",
+            "registry": "dev-toolkit-43"
+        }
 
-    def emit(self, record):
-        if record.levelno >= logging.WARNING:
-            self.counter += 1
-        super().emit(record)
-        if self.counter >= self.threshold:
-            self.rotate_log()
+    def __getitem__(self, key: str) -> Any:
+        return self._settings.get(key)
 
-    def rotate_log(self):
-        self.close()
-        if os.path.exists(self.baseFilename):
-            timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            dir_name, file_name = os.path.split(self.baseFilename)
-            name, ext = os.path.splitext(file_name)
-            new_name = f'{name}_{timestamp}{ext}'
-            new_path = os.path.join(dir_name, new_name)
-            os
+    @classmethod
+    def load_environment(cls) -> 'AppConfig':
+        instance = cls()
+        for key, value in os.environ.items():
+            if key.startswith("DT43_"):
+                clean_key = key[5:].lower()
+                instance._settings[clean_key] = value
+        return instance
+
+    def serialize(self) -> Dict[str, Any]:
+        return dict(self._settings)
+
+config = AppConfig.load_environment()
