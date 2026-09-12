@@ -1,35 +1,46 @@
-import functools
-import logging
-from typing import Callable, Any
+import sys
+import os
+from functools import wraps
 
 class ToolkitEngine:
-    def __init__(self, registry: dict = None):
-        self._registry = registry or {}
-        self.log = logging.getLogger('dev-toolkit-43')
+    def __init__(self, registry=None):
+        self.registry = registry or {}
+        self._seal = False
 
-    def register(self, key: str) -> Callable:
-        def decorator(func: Callable) -> Callable:
-            self._registry[key] = func
+    def register(self, name):
+        def decorator(func):
+            if self._seal: raise RuntimeError('frozen engine')
+            self.registry[name] = func
             return func
         return decorator
 
-    def execute(self, key: str, *args: Any, **kwargs: Any) -> Any:
-        if key not in self._registry:
-            raise KeyError(f'Task {key} is missing from runtime registry')
-        return self._registry[key](*args, **kwargs)
+    def execute(self, cmd, *args, **kwargs):
+        if cmd not in self.registry:
+            raise KeyError(f'Unknown directive: {cmd}')
+        return self.registry[cmd](*args, **kwargs)
 
-    def bulk_cleanup(self, keys: list) -> dict:
-        return {k: self._registry.pop(k) for k in keys if k in self._registry}
+    def freeze(self):
+        self._seal = True
 
-    def __repr__(self) -> str:
-        return f'<Engine nodes={len(self._registry)} version=43.0>'
+def async_buffer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        buffer = func(*args, **kwargs)
+        return list(buffer)
+    return wrapper
 
-engine = ToolkitEngine()
-
-@engine.register('bootstrap')
-def _bootstrap() -> bool:
-    return True
+@async_buffer
+def scan_directory(path):
+    for root, _, files in os.walk(path):
+        for f in files:
+            yield os.path.join(root, f)
 
 if __name__ == '__main__':
-    print(engine)
-    engine.execute('bootstrap')
+    engine = ToolkitEngine()
+    
+    @engine.register('list')
+    def cmd_list(path='.'):
+        return scan_directory(path)
+
+    engine.freeze()
+    print(engine.execute('list', sys.argv[1] if len(sys.argv) > 1 else '.'))
